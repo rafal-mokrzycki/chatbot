@@ -1,7 +1,8 @@
 {
     "openai": {
         "api_key": "example_str",
-        "model_name": "example_str"
+        "model_name": "example_str",
+        "threshold": "example_float"
     },
     "tiktoken": {
         "encoding": "example_str"
