@@ -13,9 +13,28 @@ class Interface:
     def __init__(self) -> None:
         super().__init__()
 
-    def talk(self, text_field="answers", prettify=True):
+    def prettify(self, text: str) -> str:
+        """
+        Helper func for prettifying an answer. Not implemented yet.
+
+        Args:
+            text (str): Text to apply prettifying model on.
+
+        Returns:
+            str: Prettified text.
+        """
+        # TODO: implement
+
+        return text
+
+    def talk(self, text_field: str = "answers"):
+        """Not fully implemented yet."""
+        # TODO: implement
         vectorstore = Pinecone(
-            pinecone_index.index, text_processing.embed.embed_query, text_field
+            index=pinecone_index.index,
+            embedding=text_processing.embed.embed_query,
+            text_key=text_field,
+            namespace=config["pinecone"]["namespace"]["raw"],
         )
 
         queries = [
@@ -35,21 +54,14 @@ class Interface:
         qa = RetrievalQA.from_chain_type(
             llm=llm, chain_type="stuff", retriever=vectorstore.as_retriever()
         )
-        i = 1
         for query in queries:
-            print(i)
-            if prettify:
-                print(qa.run(query))
+            res = vectorstore.similarity_search_with_score(
+                query, k=3, namespace=config["pinecone"]["namespace"]["raw"]
+            )
+            # res is a list of tuples, where 1st elem is a Document object with 2 attrs:
+            # page_content (str) and metadata (dict) and 2nd is a score (distance from
+            # question to the nearest answer)
+            if res[0][1] > 0.8:
+                print(self.prettify(res[0][0].page_content))
             else:
-                res = vectorstore.similarity_search(
-                    query, k=2  # our search query  return 2 most relevant docs
-                )
-                print(res[0])
-
-            # qa_with_sources = RetrievalQAWithSourcesChain.from_chain_type(
-            #     llm=llm, chain_type="stuff", retriever=vectorstore.as_retriever()
-            # )
-            # print(qa_with_sources(query))
-            # else:
-            #     print("NOT IN KB")
-            i += 1
+                print("Not in KB.")

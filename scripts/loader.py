@@ -3,7 +3,7 @@ from uuid import uuid4
 import pinecone
 import tiktoken
 from config import load_config
-from datasets import load_dataset
+from datasets import Dataset, load_dataset
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from tqdm.auto import tqdm
@@ -49,6 +49,7 @@ class PineconeIndex:
         Args:
             data_files (str): data file to preprocess and load into the index.
         """
+        # TODO: reformat. perhaps split into several functions?
         # settings
         data = load_dataset("csv", split="train", data_files=data_files, sep=";")
         if data_files == "sentences_raw.csv":
@@ -126,9 +127,27 @@ class TextProcessing:
             openai_api_key=config["openai"]["api_key"],
         )
 
-    def get_split_text(self, data):
+    def get_split_text(self, data: Dataset) -> RecursiveCharacterTextSplitter:
+        """
+        Splits text into chunks.
+
+        Args:
+            data (Dataset): Dataset to apply split on.
+
+        Returns:
+            RecursiveCharacterTextSplitter: _description_
+        """
         return self.text_splitter.split_text(data[6]["answers"])[:3]
 
-    def tiktoken_len(self, text):
+    def tiktoken_len(self, text: str) -> int:
+        """
+        Returns number of tokens.
+
+        Args:
+            text (str): Text to tokenize.
+
+        Returns:
+            int: Number of tokens.
+        """
         tokens = self.tokenizer.encode(text, disallowed_special=())
         return len(tokens)
