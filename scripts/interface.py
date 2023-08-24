@@ -28,8 +28,8 @@ class Interface:
         ]
         # completion llm
         llm = ChatOpenAI(
-            openai_api_key=config["OPENAI_API_KEY"],
-            model_name=config["PINECONE_MODEL_NAME"],
+            openai_api_key=config["openai"]["api_key"],
+            model_name=config["pinecone"]["model_name"],
             temperature=0.0,
         )
         qa = RetrievalQA.from_chain_type(
