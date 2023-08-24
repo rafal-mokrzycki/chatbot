@@ -14,9 +14,9 @@ config = load_config()
 class PineconeIndex:
     def __init__(self) -> None:
         pinecone.init(
-            api_key=config["PINECONE_API_KEY"], environment=config["PINECONE_ENV"]
+            api_key=config["pinecone"]["api_key"], environment=config["pinecone"]["env"]
         )
-        self.index_name = config["INDEX_NAME"]
+        self.index_name = config["pinecone"]["index_name"]
         if self.index_name not in pinecone.list_indexes():
             self.create_index()
         self.index = pinecone.Index(self.index_name)
@@ -52,9 +52,9 @@ class PineconeIndex:
         # settings
         data = load_dataset("csv", split="train", data_files=data_files, sep=";")
         if data_files == "sentences_raw.csv":
-            namespace = config["PINECONE_NAMESPACE_RAW"]
+            namespace = config["pinecone"]["namespace"]["raw"]
         else:
-            namespace = config["PINECONE_NAMESPACE_TAGGED"]
+            namespace = config["pinecone"]["namespace"]["tagged"]
         texts = []
         metadatas = []
 
@@ -82,7 +82,7 @@ class PineconeIndex:
             texts.extend(record_texts)
             metadatas.extend(record_metadatas)
             # if we have reached the batch_limit we can add texts
-            if len(texts) >= config["BATCH_LIMIT"]:
+            if len(texts) >= config["general"]["batch_limit"]:
                 ids = [str(uuid4()) for _ in range(len(texts))]
                 embeds = TextProcessing().embed.embed_documents(texts)
                 self.index.upsert(
@@ -114,7 +114,7 @@ class PineconeIndex:
 
 class TextProcessing:
     def __init__(self) -> None:
-        self.tokenizer = tiktoken.get_encoding(config["TIKTOKEN_ENCODING"])
+        self.tokenizer = tiktoken.get_encoding(config["tiktoken"]["encoding"])
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=400,
             chunk_overlap=20,
@@ -122,7 +122,8 @@ class TextProcessing:
             separators=["\n\n", "\n", " ", ""],
         )
         self.embed = OpenAIEmbeddings(
-            model=config["OPEN_AI_MODEL_NAME"], openai_api_key=config["OPENAI_API_KEY"]
+            model=config["openai"]["model_name"],
+            openai_api_key=config["openai"]["api_key"],
         )
 
     def get_split_text(self, data):
