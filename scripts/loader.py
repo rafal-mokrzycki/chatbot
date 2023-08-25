@@ -1,3 +1,4 @@
+import os
 from uuid import uuid4
 
 import pinecone
@@ -6,12 +7,14 @@ from config import load_config
 from datasets import Dataset, load_dataset
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from pinecone.core.client.exceptions import NotFoundException
+from pinecone.core.client.exceptions import ApiException, NotFoundException
 from tqdm.auto import tqdm
 
 config = load_config()
 
 
+# TODO: change hardcoded answers into sentences
+# add preprocessing
 class PineconeIndex:
     def __init__(self) -> None:
         pinecone.init(
@@ -26,16 +29,14 @@ class PineconeIndex:
         """
         Creates index if not exists.
         """
-        # TODO: change into try/except block
-        if self.index_name not in pinecone.list_indexes():
-            # we create a new index
+        try:
             pinecone.create_index(
                 name=self.index_name,
                 metric="cosine",
                 dimension=1536,
             )
             print(f"Index `{self.index_name}` created.")
-        else:
+        except ApiException:
             print(f"Index `{self.index_name}` already exists.")
 
     def _delete_index(self) -> None:
@@ -48,38 +49,33 @@ class PineconeIndex:
         except NotFoundException:
             print(f"Index `{self.index_name}` not found.")
 
-    def load_data_into_index(self, data_files: str):
+    def load_data_into_index(self, path: str, namespace: str = None):
         """
-        Loads data to index.
+        Loads data to index. Operates only on a 1-column file with a header answers.
 
         Args:
-            data_files (str): data file to preprocess and load into the index.
+            path (str): data file to preprocess and load into the index.
         """
         # TODO: reformat. perhaps split into several functions?
-        # settings
-        data = load_dataset("csv", split="train", data_files=data_files, sep=";")
-        if data_files == "sentences_raw.csv":
+
+        if not isinstance(path, str) or not os.path.isfile(path):
+            raise TypeError("Must be a string.")
+
+        if namespace is None:
             namespace = config["pinecone"]["namespace"]["raw"]
-        else:
-            namespace = config["pinecone"]["namespace"]["tagged"]
+
+        data = load_dataset("csv", split="train", data_files=path, sep=";")
+
         texts = []
         metadatas = []
 
         for _, record in enumerate(tqdm(data)):
             # first get metadata fields for this record
-            if data_files == "sentences_raw.csv":
-                metadata = {"answers": record["answers"], "source": ""}
-            else:
-                metadata = {
-                    "id": str(record["id"]),
-                    "title": record["title"],
-                    "context": record["context"],
-                    "question": record["question"],
-                    "answers": record["answers"],
-                    "source": "",
-                }
+            metadata = {"answers": record["answers"]}
+
             # now we create chunks from the record text
             record_texts = TextProcessing().text_splitter.split_text(record["answers"])
+
             # create individual metadata dicts for each chunk
             record_metadatas = [
                 {"chunk": j, "answers": text, **metadata}
@@ -102,6 +98,7 @@ class PineconeIndex:
             ids = [str(uuid4()) for _ in range(len(texts))]
             embeds = TextProcessing().embed.embed_documents(texts)
             self.index.upsert(vectors=zip(ids, embeds, metadatas), namespace=namespace)
+        print(f"{len(data)} vectors uploaded to namespace `{namespace}`.")
 
     def _delete_data(self, namespace: str) -> None:
         """
