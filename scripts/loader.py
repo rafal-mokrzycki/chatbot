@@ -6,6 +6,7 @@ from config import load_config
 from datasets import Dataset, load_dataset
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from pinecone.core.client.exceptions import NotFoundException
 from tqdm.auto import tqdm
 
 config = load_config()
@@ -25,6 +26,7 @@ class PineconeIndex:
         """
         Creates index if not exists.
         """
+        # TODO: change into try/except block
         if self.index_name not in pinecone.list_indexes():
             # we create a new index
             pinecone.create_index(
@@ -32,15 +34,19 @@ class PineconeIndex:
                 metric="cosine",
                 dimension=1536,
             )
+            print(f"Index `{self.index_name}` created.")
         else:
-            print(f"Index {self.index_name} already exists.")
-        # return pinecone.Index(self.index_name)
+            print(f"Index `{self.index_name}` already exists.")
 
     def _delete_index(self) -> None:
         """
         Deletes index.
         """
-        pinecone.delete_index(self.index_name)
+        try:
+            pinecone.delete_index(self.index_name)
+            print(f"Index `{self.index_name}` deleted.")
+        except NotFoundException:
+            print(f"Index `{self.index_name}` not found.")
 
     def load_data_into_index(self, data_files: str):
         """
@@ -99,12 +105,13 @@ class PineconeIndex:
 
     def _delete_data(self, namespace: str) -> None:
         """
-        Deletes data in a given namespace.
+        Deletes all data in a given namespace.
 
         Args:
             namespace (str): Namespace to delete data in.
         """
         self.index.delete(delete_all=True, namespace=namespace)
+        print(f"All data in namespace `{namespace}` successfully deleted.")
 
     def __repr__(self):
         return pinecone.describe_index(self.index_name)
