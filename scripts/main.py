@@ -4,6 +4,7 @@ from interface import UserInterface
 # TODO: possibly split functionalities in run.py into 2-3 files with descriptive names
 # TODO: add preprocessing
 # TODO: remove hardcoded sentences_*.csv and make one file (all will be 'raw', without 'tagged' one)
+# TODO: add tests
 if __name__ == "__main__":
     queries = [
         "Jakie powinny być marginesy w pracy?",
