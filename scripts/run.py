@@ -40,7 +40,7 @@ def main():
         "--delete_data",
         help="Deletes all data in a given Pinecone index namespace.",
         nargs="?",
-        const="sentences_raw",
+        const=config["pinecone"]["namespace"]["raw"],
         type=str,
     )
     group.add_argument(

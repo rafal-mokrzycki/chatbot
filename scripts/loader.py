@@ -13,8 +13,6 @@ from tqdm.auto import tqdm
 config = load_config()
 
 
-# TODO: change hardcoded answers into sentences
-# add preprocessing
 class PineconeIndex:
     def __init__(self) -> None:
         pinecone.init(
@@ -51,12 +49,11 @@ class PineconeIndex:
 
     def load_data_into_index(self, path: str, namespace: str = None):
         """
-        Loads data to index. Operates only on a 1-column file with a header answers.
+        Loads data to index. Operates only on a 1-column file with a header sentences.
 
         Args:
             path (str): data file to preprocess and load into the index.
         """
-        # TODO: reformat. perhaps split into several functions?
 
         if not isinstance(path, str) or not os.path.isfile(path):
             raise TypeError("Must be a string.")
@@ -65,20 +62,22 @@ class PineconeIndex:
             namespace = config["pinecone"]["namespace"]["raw"]
 
         data = load_dataset("csv", split="train", data_files=path, sep=";")
-
+        target_column = config["pinecone"]["target_column"]
         texts = []
         metadatas = []
 
         for _, record in enumerate(tqdm(data)):
             # first get metadata fields for this record
-            metadata = {"answers": record["answers"]}
+            metadata = {target_column: record[target_column]}
 
             # now we create chunks from the record text
-            record_texts = TextProcessing().text_splitter.split_text(record["answers"])
+            record_texts = TextProcessing().text_splitter.split_text(
+                record[target_column]
+            )
 
             # create individual metadata dicts for each chunk
             record_metadatas = [
-                {"chunk": j, "answers": text, **metadata}
+                {"chunk": j, target_column: text, **metadata}
                 for j, text in enumerate(record_texts)
             ]
             # append these to current batches
@@ -141,7 +140,8 @@ class TextProcessing:
         Returns:
             RecursiveCharacterTextSplitter: _description_
         """
-        return self.text_splitter.split_text(data[6]["answers"])[:3]
+        target_column = config["pinecone"]["target_column"]
+        return self.text_splitter.split_text(data[6][target_column])[:3]
 
     def tiktoken_len(self, text: str) -> int:
         """
