@@ -1,6 +1,4 @@
 from config import load_config
-from langchain.chains import RetrievalQA
-from langchain.chat_models import ChatOpenAI
 from langchain.vectorstores import Pinecone
 from loader import PineconeIndex, TextProcessing
 
@@ -9,59 +7,50 @@ pinecone_index = PineconeIndex()
 text_processing = TextProcessing()
 
 
-class Interface:
+class UserInterface:
     def __init__(self) -> None:
         super().__init__()
 
-    def prettify(self, text: str) -> str:
+    def make_conversation(
+        self,
+        query: str,
+        namespace: str = None,
+        threshold: float = None,
+        text_field: str = None,
+    ) -> str:
         """
-        Helper func for prettifying an answer. Not implemented yet.
+        Takes user query as input and returns an answer based on KB (if available)
+        or says it doesn't know.
 
         Args:
-            text (str): Text to apply prettifying model on.
+            query (str): user query.
+            namespace (str, optional): Namespace in Pinecone index to search information
+            in. Defaults to None. TODO: probably will be deprecated as determining
+            a namespace based on user input using LM is planned.
+            threshold (float, optional): Threshold below which no valid information is
+            returned (as the answer for the query is not in KB). Defaults to None.
+            text_field (str, optional): Field in Pinecone index to search answer for.
+            Defaults to None.
 
         Returns:
-            str: Prettified text.
+            str: Answer for user question.
         """
-        # TODO: implement
-
-        return text
-
-    def talk(self, text_field: str = "answers"):
-        """Not fully implemented yet."""
-        # TODO: implement
+        if namespace is None:
+            namespace = config["pinecone"]["namespace"]["raw"]
+        if threshold is None:
+            threshold = config["openai"]["threshold"]
+        if text_field is None:
+            text_field = "answers"
         vectorstore = Pinecone(
             index=pinecone_index.index,
             embedding=text_processing.embed.embed_query,
             text_key=text_field,
-            namespace=config["pinecone"]["namespace"]["raw"],
+            namespace=namespace,
         )
-
-        queries = [
-            "Jakie powinny być marginesy w pracy?",
-            "Jak zmienić promotora?",
-            "Czy mogę zmienić formę studiów?",
-            "Kim był Kopernik?",
-            "Kiedy wybuchła I wojna światowa?",
-            "Ile mieszkańców ma Warszawa?",
-        ]
-        # completion llm
-        llm = ChatOpenAI(
-            openai_api_key=config["openai"]["api_key"],
-            model_name=config["pinecone"]["model_name"],
-            temperature=0.0,
-        )
-        qa = RetrievalQA.from_chain_type(
-            llm=llm, chain_type="stuff", retriever=vectorstore.as_retriever()
-        )
-        for query in queries:
-            res = vectorstore.similarity_search_with_score(
-                query, k=3, namespace=config["pinecone"]["namespace"]["raw"]
-            )
-            # res is a list of tuples, where 1st elem is a Document object with 2 attrs:
-            # page_content (str) and metadata (dict) and 2nd is a score (distance from
-            # question to the nearest answer)
-            if res[0][1] > 0.8:
-                print(self.prettify(res[0][0].page_content))
-            else:
-                print("Not in KB.")
+        res = vectorstore.similarity_search_with_score(query, k=1, namespace=namespace)
+        # res is a list of tuples, where 1st elem is a Document object with 2 attrs:
+        # page_content (str) and metadata (dict) and 2nd is a score (distance from
+        # question to the nearest answer)
+        if res[0][1] > threshold:
+            return res[0][0].page_content
+        return str("Not in KB.")
