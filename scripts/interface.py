@@ -40,7 +40,7 @@ class UserInterface:
         if threshold is None:
             threshold = config["openai"]["threshold"]
         if text_field is None:
-            text_field = "answers"
+            text_field = config["pinecone"]["target_column"]
         vectorstore = Pinecone(
             index=pinecone_index.index,
             embedding=text_processing.embed.embed_query,
