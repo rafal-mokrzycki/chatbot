@@ -8,15 +8,19 @@
         "encoding": "example_str"
     },
     "pinecone": {
-        "namespace": {
-            "tagged": "example_str",
-            "raw": "example_str"
-        },
         "api_key": "example_str",
         "env": "example_str",
         "model_name": "example_str",
         "index_name": "example_str",
-        "target_column": "example_str"
+        "namespace": {
+            "tagged": "example_str",
+            "raw": "example_str"
+        },
+        "target_column": "example_str",
+        "target_filename": {
+            "tagged": "example_str",
+            "raw": "example_str"
+        }
     },
     "general": {
         "token": "example_str",

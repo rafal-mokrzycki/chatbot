@@ -47,7 +47,7 @@ def main():
         "--load_data",
         help="Loads data from a given file into a Pinecone index.",
         nargs="?",
-        const="sentences_raw.csv",
+        const=config["pinecone"]["target_filename"]["raw"],
         type=str,
     )
     args = parser.parse_args()
@@ -63,7 +63,7 @@ def main():
     elif args.delete_data:
         pi._delete_data(vars(args)["delete_data"])
     elif args.load_data:
-        pi.load_data_into_index("sentences_raw.csv")
+        pi.load_data_into_index(vars(args)["load_data"])
 
 
 if __name__ == "__main__":
