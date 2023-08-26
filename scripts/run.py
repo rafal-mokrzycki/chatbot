@@ -1,11 +1,14 @@
 import argparse
 
 from config import load_config
+from interface import UserInterface
 from loader import PineconeIndex
 
 
 def main():
     pi = PineconeIndex()
+    interface = UserInterface()
+
     config = load_config()
     parser = argparse.ArgumentParser(
         prog="ProgramName",
@@ -50,6 +53,14 @@ def main():
         const=config["pinecone"]["target_filename"]["raw"],
         type=str,
     )
+    group.add_argument(
+        "--make_conversation",
+        help="Enables to talk with chatbot.",
+        nargs="?",
+        const="aaa",
+        type=str,
+    )
+
     args = parser.parse_args()
     if args.create_index:
         print(pi.create_index())
@@ -64,6 +75,13 @@ def main():
         pi._delete_data(vars(args)["delete_data"])
     elif args.load_data:
         pi.load_data_into_index(vars(args)["load_data"])
+    elif args.make_conversation:
+        query = ""
+        while True:
+            query = input("O co chcesz mnie zapytać?\n")
+            if query == "q":
+                break
+            print(interface.make_conversation(query=query))
 
 
 if __name__ == "__main__":
