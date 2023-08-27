@@ -1,6 +1,5 @@
 from interface import UserInterface
 
-# TODO: add functionality to talk with a chatbotvia run.py (argparse)
 # TODO: possibly split functionalities in run.py into 2-3 files with descriptive names
 # TODO: add preprocessing
 # TODO: add tests
