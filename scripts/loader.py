@@ -1,26 +1,33 @@
 import os
+from pathlib import Path
 from uuid import uuid4
 
 import pinecone
+import repackage
 import tiktoken
-from config import load_config
 from datasets import Dataset, load_dataset
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from pinecone.core.client.exceptions import ApiException, NotFoundException
 from tqdm.auto import tqdm
 
+repackage.up()
+from config.config import load_config
+
 config = load_config()
 
 
 class PineconeIndex:
-    def __init__(self) -> None:
+    def __init__(self, index_name: str | None = None) -> None:
         pinecone.init(
             api_key=config["pinecone"]["api_key"], environment=config["pinecone"]["env"]
         )
-        self.index_name = config["pinecone"]["index_name"]
-        if self.index_name not in pinecone.list_indexes():
-            self.create_index()
+        if index_name is None:
+            self.index_name = config["pinecone"]["index_name"]
+        else:
+            self.index_name = index_name
+        # if self.index_name not in pinecone.list_indexes():
+        #     self.create_index()
         self.index = pinecone.Index(self.index_name)
 
     def create_index(self) -> None:
@@ -47,7 +54,7 @@ class PineconeIndex:
         except NotFoundException:
             print(f"Index `{self.index_name}` not found.")
 
-    def load_data_into_index(self, path: str, namespace: str = None):
+    def load_data_into_index(self, path: str | Path, namespace: str | None = None):
         """
         Loads data to index. Operates only on a 1-column file with a header sentences.
 
@@ -141,7 +148,7 @@ class TextProcessing:
             RecursiveCharacterTextSplitter: _description_
         """
         target_column = config["pinecone"]["target_column"]
-        return self.text_splitter.split_text(data[6][target_column])[:3]
+        return self.text_splitter.split_text(data[0][target_column])[:3]
 
     def tiktoken_len(self, text: str) -> int:
         """
@@ -155,3 +162,9 @@ class TextProcessing:
         """
         tokens = self.tokenizer.encode(text, disallowed_special=())
         return len(tokens)
+
+
+if __name__ == "__main__":
+    asd = PineconeIndex(index_name="test-index")
+    print(asd.index_name)
+    asd.create_index()

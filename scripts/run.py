@@ -1,8 +1,11 @@
 import argparse
 
-from config import load_config
+import repackage
 from interface import UserInterface
 from loader import PineconeIndex
+
+repackage.up()
+from config.config import load_config
 
 
 def main():
@@ -76,7 +79,6 @@ def main():
     elif args.load_data:
         pi.load_data_into_index(vars(args)["load_data"])
     elif args.make_conversation:
-        query = ""
         while True:
             query = input("O co chcesz mnie zapytać?\n")
             if query == "q":

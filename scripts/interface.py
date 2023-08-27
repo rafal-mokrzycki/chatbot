@@ -1,6 +1,14 @@
-from config import load_config
+# .venv/Scripts/python.exe -m pytest -vv  tests/test_loader.py -s
+import repackage
+
+repackage.up()
 from langchain.vectorstores import Pinecone
-from loader import PineconeIndex, TextProcessing
+
+repackage.up()
+from scripts.loader import PineconeIndex, TextProcessing
+
+repackage.up()
+from config.config import load_config
 
 config = load_config()
 pinecone_index = PineconeIndex()
