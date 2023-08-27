@@ -49,11 +49,59 @@ class Preprocessor:
                         file_paths.append(os.path.abspath(file_path))
             return file_paths
 
-    def extract_sentences_from_docx(self, file_path):
+
+class DOCXPreprocessor:
+    def extract_sentences_from_docx(self, file_path: str) -> str:
+        """
+        Extracts sentences from DOCX file and returns as one string. Joins single and
+        multiple '\n' into single whitespaces.
+
+        Args:
+            file_path (str): DOCX file path to extract text from.
+
+        Returns:
+            str: Extracted text.
+        """
         doc = Document(file_path)
         text = " ".join([paragraph.text for paragraph in doc.paragraphs])
         return text
 
+    def divide_on_points(self):
+        # dzielenie na paragrafach i punktach TODO: czy dzielimy na pudpunktach?
+        pass
+
+    def remove_title(self):
+        # usuwanie nagłówka
+        pass
+
+    def remove_preambule(self, text: str) -> str:
+        """
+        Removes everything before first paragraph (§) including this paragraph sign with
+        number. Strips whitespace at the beginnin of the remained text. As first paragraph
+        (§) forms may vary, the following substrings are tried to be splitters: "§ 1",
+        "§1", "$ 1", "$1". WARNING: this set may not be a finite one.
+
+        Args:
+            text (str): Text to be divided.
+
+        Returns:
+            str: Remained text body.
+        """
+        # usuwanie wstępu (przed punktem 1.)
+        possible_strings_to_split_on = ("§ 1", "§1", "$ 1", "$1")
+        text = [text]
+        for substr in possible_strings_to_split_on:
+            text = text[0].split(substr)
+            if len(text) > 1:
+                break
+        return text[1].strip()
+
+    def strip_on_attachments(self):
+        # usuwanie załączników wraz z tytułem sekcji (np. "Załącznik nr X")
+        pass
+
+
+class PDFPreprocessor:
     def get_raw_text_from_pdf(self, file_path: str) -> str:
         """
         Returns raw text (single string) from a PDF file.
