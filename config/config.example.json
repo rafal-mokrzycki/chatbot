@@ -25,6 +25,9 @@
     "general": {
         "token": "example_str",
         "port": "example_int",
-        "batch_limit": "example_int"
+        "batch_limit": "example_int",
+        "accepted_file_formats": [
+            "list_of_strings"
+        ]
     }
 }
