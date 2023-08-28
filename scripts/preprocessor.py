@@ -1,3 +1,4 @@
+import glob
 import os
 import re
 from pathlib import Path
@@ -51,6 +52,12 @@ class Preprocessor:
 
 
 class DOCXPreprocessor:
+    def preprocess_docx(self, file_path: str) -> list[str]:
+        t1 = self.extract_sentences_from_docx(file_path)
+        t2 = self.remove_preambule(t1)
+        t3 = self.remove_attachments(t2)
+        return self.split_on_points(t3)
+
     def extract_sentences_from_docx(self, file_path: str) -> str:
         """
         Extracts sentences from DOCX file and returns as one string. Joins single and
@@ -66,13 +73,21 @@ class DOCXPreprocessor:
         text = " ".join([paragraph.text for paragraph in doc.paragraphs])
         return text
 
-    def divide_on_points(self):
-        # dzielenie na paragrafach i punktach TODO: czy dzielimy na pudpunktach?
-        pass
+    def split_on_points(self, text: str) -> list[str]:
+        """
+        Splits text of paragraphs and points (eg. § 2, §2, $ 2, $2, 2., 13.).
 
-    def remove_title(self):
-        # usuwanie nagłówka
-        pass
+        Args:
+            text (str): Text to be divided.
+
+        Returns:
+            list[str]: List of remained sentences.
+        """
+        # dzielenie na paragrafach i punktach TODO: czy dzielimy na pudpunktach?
+        text_without_paragrapghs = re.split(r"[§$] ?\d+", text)
+        text_without_points = re.split(r"\d+\.", " ".join(text_without_paragrapghs))
+        # usuwanie białych znaków i usuwanie pustych elementów listy
+        return [sentence.strip() for sentence in text_without_points if sentence.strip()]
 
     def remove_preambule(self, text: str) -> str:
         """
@@ -88,17 +103,20 @@ class DOCXPreprocessor:
             str: Remained text body.
         """
         # usuwanie wstępu (przed punktem 1.)
-        possible_strings_to_split_on = ("§ 1", "§1", "$ 1", "$1")
-        text = [text]
-        for substr in possible_strings_to_split_on:
-            text = text[0].split(substr)
-            if len(text) > 1:
-                break
-        return text[1].strip()
+        return re.split(r"[§$] ?1", text, 1)[1]
 
-    def strip_on_attachments(self):
+    def remove_attachments(self, text: str) -> str:
+        """
+        Removes everything before first attachment (Załącznik nr 1).
+
+        Args:
+            text (str): Text to be divided.
+
+        Returns:
+            str: Remained text body.
+        """
         # usuwanie załączników wraz z tytułem sekcji (np. "Załącznik nr X")
-        pass
+        return re.split(r"Za[lł][aą]cznik (nr)? 1", text, 1)[0]
 
 
 class PDFPreprocessor:
