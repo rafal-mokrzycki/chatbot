@@ -1,4 +1,4 @@
-# .venv/Scripts/python.exe -m pytest -vv  tests/test_loader.py -s
+#!/usr/bin/python
 import repackage
 
 repackage.up()

@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import os
 from pathlib import Path
 from uuid import uuid4
@@ -165,6 +166,5 @@ class TextProcessing:
 
 
 if __name__ == "__main__":
-    asd = PineconeIndex(index_name="test-index")
-    print(asd.index_name)
-    asd.create_index()
+    path = Path(__file__).parent.parent.joinpath("sentences_raw.csv")
+    PineconeIndex().load_data_into_index(path)
