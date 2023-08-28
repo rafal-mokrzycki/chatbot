@@ -228,3 +228,12 @@ class PDFPreprocessor:
             else:
                 break
         return " ".join(result)
+
+
+class TableHandler:
+    def __init__(self, table_name: str | None = None) -> None:
+        if table_name is None:
+            table_name = config["pinecone"]["target_filename"]["raw"]
+        if glob.glob(f"./{table_name}") == []:
+            with open(table_name, "w") as f:
+                f.write(config["pinecone"]["target_column"])
