@@ -1,3 +1,4 @@
+# to run: .venv/Scripts/python.exe -m pytest -vv  tests/test_loader.py -s
 from pathlib import Path
 
 import pinecone
