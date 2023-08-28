@@ -150,7 +150,7 @@ class DOCXPreprocessor:
             str: Remained text body.
         """
         # usuwanie załączników wraz z tytułem sekcji (np. "Załącznik nr X")
-        return re.split(r"Za[lł][aą]cznik (nr)? 1", text, 1)[0]
+        return re.split(r"Za[lł][aą]cznik ?(nr)? ?1", text, 1)[0]
 
     def replace_forbidden_chars(
         self, text: str, forbidden_chars: list[str] | None = None, replace_with: str = ","
