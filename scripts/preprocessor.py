@@ -1,3 +1,4 @@
+#!/usr/bin/python
 import glob
 import os
 import re
@@ -11,6 +12,21 @@ repackage.up()
 from config.config import load_config
 
 config = load_config()
+# TODO: change classes to preprocessing (separate for DOXC and PDF) and text processing /
+# (methods for strings operating inplce.)
+
+
+def main(path: str = None):
+    list_of_files = Preprocessor(path).search_files_in_dir()
+    for file_path in list_of_files:
+        if file_path.endswith(".pdf"):
+            pass
+        elif file_path.endswith(".docx"):
+            if "Zarządzenie" in file_path:
+                text = DOCXPreprocessor().preprocess_docx(file_path)
+                TableHandler().add_lines(text)
+        else:
+            continue
 
 
 class Preprocessor:
@@ -53,10 +69,20 @@ class Preprocessor:
 
 class DOCXPreprocessor:
     def preprocess_docx(self, file_path: str) -> list[str]:
+        """
+        Sequentially processes DOCX file
+
+        Args:
+            file_path (str): DOCX file path.
+
+        Returns:
+            list[str]: List of sentences
+        """
         t1 = self.extract_sentences_from_docx(file_path)
         t2 = self.remove_preambule(t1)
         t3 = self.remove_attachments(t2)
-        return self.split_on_points(t3)
+        t4 = self.replace_forbidden_chars(t3)
+        return self.split_on_points(t4)
 
     def extract_sentences_from_docx(self, file_path: str) -> str:
         """
@@ -86,8 +112,13 @@ class DOCXPreprocessor:
         # dzielenie na paragrafach i punktach TODO: czy dzielimy na pudpunktach?
         text_without_paragrapghs = re.split(r"[§$] ?\d+", text)
         text_without_points = re.split(r"\d+\.", " ".join(text_without_paragrapghs))
-        # usuwanie białych znaków i usuwanie pustych elementów listy
-        return [sentence.strip() for sentence in text_without_points if sentence.strip()]
+        # usuwanie białych znaków na początku i na końcu stringa
+        # oraz usuwanie pustych elementów listy
+        sentences = [
+            sentence.strip() for sentence in text_without_points if sentence.strip()
+        ]
+        # usuwanie wielokrotnych spacji wewnątrz stringów i zwrócenie listy
+        return [self.replace_whitespaces(sentence) for sentence in sentences]
 
     def remove_preambule(self, text: str) -> str:
         """
@@ -103,7 +134,10 @@ class DOCXPreprocessor:
             str: Remained text body.
         """
         # usuwanie wstępu (przed punktem 1.)
-        return re.split(r"[§$] ?1", text, 1)[1]
+        try:
+            return re.split(r"[§$] ?1", text, 1)[1]
+        except IndexError:
+            return text
 
     def remove_attachments(self, text: str) -> str:
         """
@@ -117,6 +151,38 @@ class DOCXPreprocessor:
         """
         # usuwanie załączników wraz z tytułem sekcji (np. "Załącznik nr X")
         return re.split(r"Za[lł][aą]cznik (nr)? 1", text, 1)[0]
+
+    def replace_forbidden_chars(
+        self, text: str, forbidden_chars: list[str] | None = None, replace_with: str = ","
+    ) -> str:
+        """
+        Replaces characters that prevent from reading CSV file into pandas DataFrame.
+
+        Args:
+            text (str): Text to apply replacement on.
+            forbidden_chars (list[str] | None, optional): Forbidden characters to replace
+            with `replace_with`. Defaults to None.
+            replace_with (str): Character to replace with. Defaults to ','.
+        Returns:
+            str: Text.
+        """
+        if forbidden_chars is None:
+            forbidden_chars = [";"]
+        for char in forbidden_chars:
+            text = text.replace(char, replace_with)
+        return text
+
+    def replace_whitespaces(self, text: str) -> str:
+        """
+        Replaces multiple whitespaces with single ones.
+
+        Args:
+            text (str): Text to apply replacement on.
+
+        Returns:
+            str: Text.
+        """
+        return re.sub(r"\s+", " ", text)
 
 
 class PDFPreprocessor:
@@ -232,8 +298,38 @@ class PDFPreprocessor:
 
 class TableHandler:
     def __init__(self, table_name: str | None = None) -> None:
+        """
+        Creates target table if it does not exists.
+
+        Args:
+            table_name (str | None, optional): Table name to be created. If None, taken
+            from config. Defaults to None.
+        """
+        # TODO: change argument name from table_name to file_name/file_path?
         if table_name is None:
-            table_name = config["pinecone"]["target_filename"]["raw"]
-        if glob.glob(f"./{table_name}") == []:
-            with open(table_name, "w") as f:
+            self.table_name = config["pinecone"]["target_filename"]["raw"]
+        else:
+            self.table_name = table_name
+        if glob.glob(f"./{self.table_name}") == []:
+            with open(self.table_name, "w") as f:
                 f.write(config["pinecone"]["target_column"])
+                f.write("\n")
+
+    def add_lines(self, sentences: list[str]):
+        """
+        Appends sentences to file.
+
+        Args:
+            sentences (list[str]): Sentences to append.
+        """
+        # TODO: add argument with table path.
+        with open(
+            self.table_name,
+            "a",
+            encoding="utf-8",
+        ) as f:
+            f.write("\n".join(sentences))
+
+
+if __name__ == "__main__":
+    main()

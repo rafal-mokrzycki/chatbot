@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from interface import UserInterface
 
 # TODO: possibly split functionalities in run.py into 2-3 files with descriptive names
