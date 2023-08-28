@@ -38,7 +38,7 @@ class Preprocessor:
         if path is None:
             path = Path(__file__).parent.parent.joinpath("data")
         self.path = path
-        self.files_list = self.search_files_in_dir()
+        self.files_list = self.search_files_in_dir(self.path)
 
     def search_files_in_dir(self, path_to_search: str | None = None) -> list:
         """
