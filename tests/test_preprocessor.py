@@ -25,11 +25,19 @@ def test_extract_sentences_from_docx():
     )
     p = DOCXPreprocessor()
     result = p.extract_sentences_from_docx(directory)
-    assert result == "This is a paragraph. This is another paragraph."
+    assert (
+        result
+        == "This is a paragraph. This is another paragraph. § 1. This is yet another paragraph. Załącznik nr 1 This is an attachment."
+    )
 
 
 def test_preprocess_docx():
-    pass
+    directory = str(
+        Path(__file__).parent.parent.joinpath(r"tests/test_files/test_file.docx")
+    )
+    p = DOCXPreprocessor()
+    result = p.preprocess_docx(directory)
+    assert result == ["This is yet another paragraph. This is as point"]
 
 
 def test_remove_attachments():
@@ -43,28 +51,28 @@ def test_remove_preambule_1():
     string = "random string § 1 another random string"
     p = DOCXPreprocessor()
     result = p.remove_preambule(string)
-    assert result == " another random string"
+    assert result == "another random string"
 
 
 def test_remove_preambule_2():
     string = "random string §1 another random string"
     p = DOCXPreprocessor()
     result = p.remove_preambule(string)
-    assert result == " another random string"
+    assert result == "another random string"
 
 
 def test_remove_preambule_3():
     string = "random string $ 1 another random string"
     p = DOCXPreprocessor()
     result = p.remove_preambule(string)
-    assert result == " another random string"
+    assert result == "another random string"
 
 
 def test_remove_preambule_4():
     string = "random string $1 another random string"
     p = DOCXPreprocessor()
     result = p.remove_preambule(string)
-    assert result == " another random string"
+    assert result == "another random string"
 
 
 def test_remove_preambule_5():
