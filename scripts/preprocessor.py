@@ -110,7 +110,7 @@ class DOCXPreprocessor:
             list[str]: List of remained sentences.
         """
         # dzielenie na paragrafach i punktach TODO: czy dzielimy na pudpunktach?
-        text_without_paragrapghs = re.split(r"[§$] ?\d+", text)
+        text_without_paragrapghs = re.split(r"[§$] ?\d+.?", text)
         text_without_points = re.split(r"\d+\.", " ".join(text_without_paragrapghs))
         # usuwanie białych znaków na początku i na końcu stringa
         # oraz usuwanie pustych elementów listy
@@ -135,7 +135,7 @@ class DOCXPreprocessor:
         """
         # usuwanie wstępu (przed punktem 1.)
         try:
-            return re.split(r"[§$] ?1", text, 1)[1]
+            return re.split(r"[§$] ?1.?", text, 1)[1]
         except IndexError:
             return text
 
