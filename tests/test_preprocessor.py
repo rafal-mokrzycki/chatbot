@@ -10,6 +10,7 @@ from scripts.preprocessor import (
     add_category,
     add_lines,
     create_csv_file_if_not_exist,
+    determine_language,
     extract_text_from_docx,
     forward_regexp_search,
     get_files_in_dir,
@@ -131,6 +132,21 @@ def test_forward_regexp_search():
     target_string = "first"
     result = forward_regexp_search(main_string=main_string, target_string=target_string)
     assert result == "string another"
+
+
+def test_determine_language_1():
+    text = "Do 1920 r. koleje na ziemiach niemieckich były przeważnie własnością"
+    assert determine_language(text) == "pl"
+
+
+def test_determine_language_2():
+    text = "The company generates about half of its total revenue"
+    assert determine_language(text) == "en"
+
+
+def test_determine_language_3():
+    text = "Das Unternehmen ist als Aktiengesellschaft organisiert"
+    assert determine_language(text) == "de"
 
 
 def test_get_raw_text_from_pdf():

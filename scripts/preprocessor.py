@@ -5,6 +5,7 @@ from pathlib import Path
 
 import aspose.pdf as pdf
 import repackage
+import spacy
 from docx import Document
 
 repackage.up()
@@ -196,6 +197,25 @@ def remove_page_numbers(text: str) -> str:
 def add_category(text: str, file_path: str) -> str:
     category = file_path.split("\\")[-1].split(".")[0]
     return category + ": " + text + "\n"
+
+
+def determine_language(text: str) -> str:
+    """
+    Returns a language, that given text is written in.
+
+    Args:
+        text (str): Text to check.
+
+    Returns:
+        str: Language. Tested for pl, en, de.
+    """
+    import spacy_fastlang
+
+    nlp = spacy.load("pl_core_news_sm")
+    nlp.add_pipe("language_detector")
+    doc = nlp(text)
+
+    return doc._.language
 
 
 class DOCXPreprocessor:

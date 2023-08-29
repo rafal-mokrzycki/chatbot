@@ -1,9 +1,9 @@
 #!/usr/bin/python
 from interface import UserInterface
 
-# TODO: possibly split functionalities in run.py into 2-3 files with descriptive names
-# TODO: add preprocessing
-# TODO: add tests
+# TODO: add preprocessing for PDF
+# TODO: add possiblity to deal with multiple questions from users
+# TODO: remove questions from data directory
 if __name__ == "__main__":
     queries = [
         "Jakie powinny być marginesy w pracy?",
