@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import os
-from pathlib import Path
+from pathlib import Path, WindowsPath
 from uuid import uuid4
 
 import pinecone
@@ -55,21 +55,22 @@ class PineconeIndex:
         except NotFoundException:
             print(f"Index `{self.index_name}` not found.")
 
-    def load_data_into_index(self, path: str, namespace: str | None = None):
+    def load_data_into_index(
+        self, path: str | Path | WindowsPath, namespace: str | None = None
+    ):
         """
-        Loads data to index. Operates only on a 1-column file with a header sentences.
+        Loads data to index from a CSV file. Operates only on a 1-column file
+        with a header `sentences`.
 
         Args:
-            path (str): data file to preprocess and load into the index.
+            path (str | Path | WindowsPath): data file to preprocess and load into index.
         """
-        # TODO: zrobić porządek z obsługą Path/str
-        if not isinstance(path, str) or not os.path.isfile(path):
-            raise TypeError("Path must be a string.")
+        string_path = convert_path_to_string(path)
 
         if namespace is None:
             namespace = config["pinecone"]["namespace"]["raw"]
 
-        data = load_dataset("csv", split="train", data_files=path, sep=";")
+        data = load_dataset("csv", split="train", data_files=string_path, sep=";")
         target_column = config["pinecone"]["target_column"]
         texts = []
         metadatas = []
@@ -165,6 +166,31 @@ class TextProcessing:
         return len(tokens)
 
 
+def convert_path_to_string(path: str | Path | WindowsPath) -> str:
+    """
+    Converts Path or WindowsPath to string.
+
+    Args:
+        path (str | Path | WindowsPath): Path to be converted.
+
+    Raises:
+        TypeError: If path is not of a type str, Path or WindowsPath.
+
+    Returns:
+        str: Converted Path or WindowsPath, or string as-is.
+    """
+    if isinstance(path, (Path | WindowsPath)):
+        if not os.path.isfile(path):
+            raise TypeError("Path must be a valid file path.")
+        return path.__str__()
+    elif isinstance(path, str):
+        if not os.path.isfile(path):
+            raise TypeError("Path must be a valid file path.")
+        return path
+    else:
+        raise TypeError("Path must be a string, Path or WindowsPath.")
+
+
 if __name__ == "__main__":
-    path = str(Path(__file__).parent.parent.joinpath("sentences_raw.csv"))
+    path = Path(__file__).parent.parent.joinpath("sentences_raw.csv")
     PineconeIndex().load_data_into_index(path)
