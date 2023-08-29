@@ -1,5 +1,4 @@
 #!/usr/bin/python
-import glob
 import os
 import re
 from pathlib import Path
@@ -12,177 +11,182 @@ repackage.up()
 from config.config import load_config
 
 config = load_config()
-# TODO: change classes to preprocessing (separate for DOXC and PDF) and text processing /
-# (methods for strings operating inplce.)
 
 
-def main(path: str = None):
-    list_of_files = Preprocessor(path).search_files_in_dir()
+def main(path: str | None = None):
+    """
+    Main preprocessor of different files. Adds chunks of texts to a local CSV file.
+
+    Args:
+        path (str | None, optional): Local path files are in. Defaults to None.
+    """
+    list_of_files = get_files_in_dir(path)
     for file_path in list_of_files:
         if file_path.endswith(".pdf"):
             pass
         elif file_path.endswith(".docx"):
-            if "Zarządzenie" in file_path:
-                text = DOCXPreprocessor().preprocess_docx(file_path)
-                TableHandler().add_lines(text)
+            text = DOCXPreprocessor(file_path)
+            list_of_sentences = text.preprocess()
+            add_lines(list_of_sentences)
         else:
             continue
 
 
-class Preprocessor:
+def get_files_in_dir(path_to_search: str | None = None) -> list:
     """
-    Class for preprocessing of DOCX and PDF files. Takes a file or a directory with files.
+    Searches all files in a dir (checking also subdirs) that have extensions as stated
+    in config.json.
+
+    Args:
+        path_to_search (str | None, optional): Path to search files in. If None,
+        equals to self.path. Defaults to None.
+
+    Returns:
+        list: List of files with absolute paths.
     """
+    if path_to_search is None:
+        path_to_search = Path(__file__).parent.parent.joinpath("data")
+    if os.path.isfile(path_to_search):
+        return [path_to_search]
+    elif os.path.isdir(path_to_search):
+        file_paths = []
+        for root, _, files in os.walk(path_to_search):
+            for file in files:
+                _, ext = os.path.splitext(file)
+                if ext.lower() in config["general"]["accepted_file_formats"]:
+                    file_path = os.path.join(root, file)
+                    file_paths.append(os.path.abspath(file_path))
+        return file_paths
 
-    def __init__(self, path: str | None = None) -> None:
-        if path is None:
-            path = Path(__file__).parent.parent.joinpath("data")
-        self.path = path
-        self.files_list = self.search_files_in_dir(self.path)
 
-    def search_files_in_dir(self, path_to_search: str | None = None) -> list:
-        """
-        Searches all files in a dir (checking also subdirs) that have extensions as
-        in config.json.
+def extract_text_from_docx(file_path: str) -> str:
+    """
+    Extracts sentences from DOCX file and returns as one string. Joins single and
+    multiple '\n' into single whitespaces.
 
-        Args:
-            path_to_search (str | None, optional): Path to search files in. If None,
-            equals to self.path. Defaults to None.
+    Args:
+        file_path (str): DOCX file path to extract text from.
 
-        Returns:
-            list: List of files with absolute paths.
-        """
-        if path_to_search is None:
-            path_to_search = self.path
-        if os.path.isfile(path_to_search):
-            return [path_to_search]
-        elif os.path.isdir(path_to_search):
-            file_paths = []
-            for root, _, files in os.walk(path_to_search):
-                for file in files:
-                    _, ext = os.path.splitext(file)
-                    if ext.lower() in config["general"]["accepted_file_formats"]:
-                        file_path = os.path.join(root, file)
-                        file_paths.append(os.path.abspath(file_path))
-            return file_paths
+    Returns:s
+        str: Extracted text.
+    """
+    doc = Document(file_path)
+    text = " ".join([paragraph.text for paragraph in doc.paragraphs])
+    return text
+
+
+def split_on_points(text: str) -> list[str]:
+    """
+    Splits text of paragraphs and points (eg. § 2, §2, $ 2, $2, 2., 13.).
+
+    Args:
+        text (str): Text to be divided.
+
+    Returns:
+        list[str]: List of remained sentences.
+    """
+    # dzielenie na paragrafach i punktach TODO: czy dzielimy na podpunktach?
+    text_without_paragrapghs = re.split(r"[§$] ?\d+.?", text)
+    text_without_points = re.split(r"\d+\.", " ".join(text_without_paragrapghs))
+    # usuwanie białych znaków na początku i na końcu stringa
+    # oraz usuwanie pustych elementów listy
+    sentences = [sentence.strip() for sentence in text_without_points if sentence.strip()]
+    # usuwanie wielokrotnych spacji wewnątrz stringów i zwrócenie listy
+    return [replace_whitespaces(sentence) for sentence in sentences]
+
+
+def remove_preambule(text: str) -> str:
+    """
+    Removes everything before first paragraph (§) including this paragraph sign with a
+    number. Strips whitespace at the beginnin of the remained text. As first paragraph
+    (§) forms may vary, the following substrings are tried to be splitters: "§ 1",
+    "§1", "$ 1", "$1". WARNING: this set may not be a finite one.
+
+    Args:
+        text (str): Text to be divided.
+
+    Returns:
+        str: Remained text body.
+    """
+    # usuwanie wstępu (przed punktem 1.)
+    try:
+        return re.split(r"[§$] ?1.?", text, 1)[1]
+    except IndexError:
+        return text
+
+
+def remove_attachments(text: str) -> str:
+    """
+    Removes everything before first attachment (Załącznik nr 1).
+
+    Args:
+        text (str): Text to be divided.
+
+    Returns:
+        str: Remained text body.
+    """
+    # usuwanie załączników wraz z tytułem sekcji (np. "Załącznik nr X")
+    return re.split(r"Za[lł][aą]cznik ?(nr)? ?1", text, 1)[0]
+
+
+def replace_forbidden_chars(
+    text: str, forbidden_chars: list[str] | None = None, replace_with: str = ","
+) -> str:
+    """
+    Replaces characters that prevent from reading CSV file into pandas DataFrame.
+
+    Args:
+        text (str): Text to apply replacement on.
+        forbidden_chars (list[str] | None, optional): Forbidden characters to replace
+        with `replace_with`. Defaults to None.
+        replace_with (str): Character to replace with. Defaults to ','.
+    Returns:
+        str: Text.
+    """
+    if forbidden_chars is None:
+        forbidden_chars = [";"]
+    for char in forbidden_chars:
+        text = text.replace(char, replace_with)
+    return text
+
+
+def replace_whitespaces(text: str) -> str:
+    """
+    Replaces multiple whitespaces with single ones.
+
+    Args:
+        text (str): Text to apply replacement on.
+
+    Returns:
+        str: Text.
+    """
+    return re.sub(r"\s+", " ", text)
 
 
 class DOCXPreprocessor:
-    def preprocess_docx(self, file_path: str) -> list[str]:
-        """
-        Sequentially processes DOCX file
+    def __init__(self, file_path: str) -> None:
+        self.file_path = file_path
+        if "Zarządzenie" in self.file_path:
+            self.file_type = "Zarządzenie"
+        elif "Pytania" in self.file_path:
+            self.file_type = "Pytania"
+        else:
+            self.file_type = "Inny"
 
-        Args:
-            file_path (str): DOCX file path.
+    def preprocess(self) -> list[str]:
+        """
+        Sequentially processes DOCX file.
 
         Returns:
             list[str]: List of sentences
         """
-        t1 = self.extract_sentences_from_docx(file_path)
-        t2 = self.remove_preambule(t1)
-        t3 = self.remove_attachments(t2)
-        t4 = self.replace_forbidden_chars(t3)
-        return self.split_on_points(t4)
-
-    def extract_sentences_from_docx(self, file_path: str) -> str:
-        """
-        Extracts sentences from DOCX file and returns as one string. Joins single and
-        multiple '\n' into single whitespaces.
-
-        Args:
-            file_path (str): DOCX file path to extract text from.
-
-        Returns:
-            str: Extracted text.
-        """
-        doc = Document(file_path)
-        text = " ".join([paragraph.text for paragraph in doc.paragraphs])
-        return text
-
-    def split_on_points(self, text: str) -> list[str]:
-        """
-        Splits text of paragraphs and points (eg. § 2, §2, $ 2, $2, 2., 13.).
-
-        Args:
-            text (str): Text to be divided.
-
-        Returns:
-            list[str]: List of remained sentences.
-        """
-        # dzielenie na paragrafach i punktach TODO: czy dzielimy na pudpunktach?
-        text_without_paragrapghs = re.split(r"[§$] ?\d+.?", text)
-        text_without_points = re.split(r"\d+\.", " ".join(text_without_paragrapghs))
-        # usuwanie białych znaków na początku i na końcu stringa
-        # oraz usuwanie pustych elementów listy
-        sentences = [
-            sentence.strip() for sentence in text_without_points if sentence.strip()
-        ]
-        # usuwanie wielokrotnych spacji wewnątrz stringów i zwrócenie listy
-        return [self.replace_whitespaces(sentence) for sentence in sentences]
-
-    def remove_preambule(self, text: str) -> str:
-        """
-        Removes everything before first paragraph (§) including this paragraph sign with
-        number. Strips whitespace at the beginnin of the remained text. As first paragraph
-        (§) forms may vary, the following substrings are tried to be splitters: "§ 1",
-        "§1", "$ 1", "$1". WARNING: this set may not be a finite one.
-
-        Args:
-            text (str): Text to be divided.
-
-        Returns:
-            str: Remained text body.
-        """
-        # usuwanie wstępu (przed punktem 1.)
-        try:
-            return re.split(r"[§$] ?1.?", text, 1)[1]
-        except IndexError:
-            return text
-
-    def remove_attachments(self, text: str) -> str:
-        """
-        Removes everything before first attachment (Załącznik nr 1).
-
-        Args:
-            text (str): Text to be divided.
-
-        Returns:
-            str: Remained text body.
-        """
-        # usuwanie załączników wraz z tytułem sekcji (np. "Załącznik nr X")
-        return re.split(r"Za[lł][aą]cznik ?(nr)? ?1", text, 1)[0]
-
-    def replace_forbidden_chars(
-        self, text: str, forbidden_chars: list[str] | None = None, replace_with: str = ","
-    ) -> str:
-        """
-        Replaces characters that prevent from reading CSV file into pandas DataFrame.
-
-        Args:
-            text (str): Text to apply replacement on.
-            forbidden_chars (list[str] | None, optional): Forbidden characters to replace
-            with `replace_with`. Defaults to None.
-            replace_with (str): Character to replace with. Defaults to ','.
-        Returns:
-            str: Text.
-        """
-        if forbidden_chars is None:
-            forbidden_chars = [";"]
-        for char in forbidden_chars:
-            text = text.replace(char, replace_with)
-        return text
-
-    def replace_whitespaces(self, text: str) -> str:
-        """
-        Replaces multiple whitespaces with single ones.
-
-        Args:
-            text (str): Text to apply replacement on.
-
-        Returns:
-            str: Text.
-        """
-        return re.sub(r"\s+", " ", text)
+        if self.file_type.capitalize() == "Zarządzenie":
+            t1 = extract_text_from_docx(self.file_path)
+            t2 = remove_preambule(t1)
+            t3 = remove_attachments(t2)
+            t4 = replace_forbidden_chars(t3)
+            return split_on_points(t4)
+        return []
 
 
 class PDFPreprocessor:
@@ -261,74 +265,63 @@ class PDFPreprocessor:
             json_[elem] = self.forward_regexp_search(main_string, elem)
         return json_
 
-    def forward_regexp_search(self, main_string: str, target_string: str) -> str:
-        """
-        Searches a given substring (`target_string`) in a large string (`main_string`)
-        and returns N next words as one string (up to the nearest number with a comma, eg.
-        `13.`)
 
-        Args:
-            main_string (str): String to search in
-            target_string (str): Subtring to search
+def forward_regexp_search(main_string: str, target_string: str) -> str:
+    """
+    Searches a given substring (`target_string`) in a large string (`main_string`)
+    and returns N next words as one string (up to the nearest number with a comma, eg.
+    `13.`)
 
-        Returns:
-            str: Searched string.
-        """
+    Args:
+        main_string (str): String to search in
+        target_string (str): Subtring to search
 
-        def get_number_with_comma(string):
-            regexp = r"\d+\."
-            if re.fullmatch(regexp, string) is not None:
-                return False
-            return True
+    Returns:
+        str: Searched string.
+    """
 
-        # get rid of whitespaces at the beginning and in the end
-        target_string = target_string.strip()
-        length = len(target_string)
-        # position of the target_string
-        pos = main_string.find(target_string)
-        word_list = (main_string[pos + length :].strip()).split(" ")
-        result = []
-        for word in word_list:
-            if get_number_with_comma(word):
-                result.append(word)
-            else:
-                break
-        return " ".join(result)
+    def get_number_with_comma(string):
+        regexp = r"\d+\."
+        if re.fullmatch(regexp, string) is not None:
+            return False
+        return True
 
-
-class TableHandler:
-    def __init__(self, table_name: str | None = None) -> None:
-        """
-        Creates target table if it does not exists.
-
-        Args:
-            table_name (str | None, optional): Table name to be created. If None, taken
-            from config. Defaults to None.
-        """
-        # TODO: change argument name from table_name to file_name/file_path?
-        if table_name is None:
-            self.table_name = config["pinecone"]["target_filename"]["raw"]
+    # get rid of whitespaces at the beginning and in the end
+    target_string = target_string.strip()
+    length = len(target_string)
+    # position of the target_string
+    pos = main_string.find(target_string)
+    word_list = (main_string[pos + length :].strip()).split(" ")
+    result = []
+    for word in word_list:
+        if get_number_with_comma(word):
+            result.append(word)
         else:
-            self.table_name = table_name
-        if glob.glob(f"./{self.table_name}") == []:
-            with open(self.table_name, "w") as f:
-                f.write(config["pinecone"]["target_column"])
-                f.write("\n")
+            break
+    return " ".join(result)
 
-    def add_lines(self, sentences: list[str]):
-        """
-        Appends sentences to file.
 
-        Args:
-            sentences (list[str]): Sentences to append.
-        """
-        # TODO: add argument with table path.
-        with open(
-            self.table_name,
-            "a",
-            encoding="utf-8",
-        ) as f:
-            f.write("\n".join(sentences))
+def add_lines(sentences: list[str], file_path: str | None = None):
+    """
+    Appends sentences to file. Creates a file if it does no exist.
+
+    Args:
+        sentences (list[str]): Sentences to append.
+        file_path (str | None, optional): CSV file path to append sentences to.
+        If None, taken from config.json. Defaults to None.
+    """
+    if file_path is None:
+        file_name = config["pinecone"]["target_filename"]["raw"]
+        file_path = Path(__file__).parent.parent.joinpath(file_name)
+    create_csv_file_if_not_exist(file_path)
+    with open(file_path, "a", encoding="utf-8") as f:
+        f.write("\n".join(sentences))
+
+
+def create_csv_file_if_not_exist(file_path: str):
+    if not os.path.exists(file_path):
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(f'{config["pinecone"]["target_column"]}\n')
 
 
 if __name__ == "__main__":
