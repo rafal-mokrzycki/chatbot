@@ -1,5 +1,5 @@
 # to run: .venv/Scripts/python.exe -m pytest -vv  tests/test_loader.py -s
-from pathlib import Path
+from pathlib import Path, WindowsPath
 
 import pinecone
 import pytest
@@ -8,6 +8,7 @@ from datasets import load_dataset
 
 repackage.up()
 from scripts.interface import PineconeIndex, TextProcessing
+from scripts.loader import convert_path_to_string
 
 
 # TODO: more fixtures
@@ -19,6 +20,16 @@ def pinecone_index_name():
 @pytest.fixture(name="filepath")
 def sample_file_path():
     yield str(Path(__file__).parent.joinpath("sample.csv"))
+
+
+@pytest.fixture(name="not_existing_file_path")
+def not_existing_file_path():
+    yield r"tests\test_files\not_existing_file.pdf"
+
+
+@pytest.fixture(name="existing_file_path")
+def existing_file_path():
+    yield r"tests\test_files\test_file.pdf"
 
 
 def test_create_index(pinecone_index_name):
@@ -65,3 +76,49 @@ def test_tiktoken_len():
     tp = TextProcessing()
     text = "I am now evaluating a mechanism that using index for an embedding space."
     assert tp.tiktoken_len(text) == 14
+
+
+def test_convert_path_to_string_1(existing_file_path):
+    assert convert_path_to_string(existing_file_path) == existing_file_path
+
+
+def test_convert_path_to_string_2(existing_file_path):
+    path = Path(existing_file_path)
+    assert convert_path_to_string(path) == existing_file_path
+
+
+def test_convert_path_to_string_3(existing_file_path):
+    path = WindowsPath(existing_file_path)
+    assert convert_path_to_string(path) == existing_file_path
+
+
+def test_convert_path_to_string_4(not_existing_file_path):
+    with pytest.raises(TypeError, match="Path must be a valid file path."):
+        convert_path_to_string(not_existing_file_path)
+
+
+def test_convert_path_to_string_5(not_existing_file_path):
+    path = Path(not_existing_file_path)
+    with pytest.raises(TypeError, match="Path must be a valid file path."):
+        convert_path_to_string(path)
+
+
+def test_convert_path_to_string_6(not_existing_file_path):
+    path = WindowsPath(not_existing_file_path)
+    with pytest.raises(TypeError, match="Path must be a valid file path."):
+        convert_path_to_string(path)
+
+
+def test_convert_path_to_string_7():
+    with pytest.raises(TypeError, match="Path must be a string, Path or WindowsPath."):
+        convert_path_to_string(0)
+
+
+def test_convert_path_to_string_8():
+    with pytest.raises(TypeError, match="Path must be a string, Path or WindowsPath."):
+        convert_path_to_string(0.0)
+
+
+def test_convert_path_to_string_9():
+    with pytest.raises(TypeError, match="Path must be a string, Path or WindowsPath."):
+        convert_path_to_string(True)
