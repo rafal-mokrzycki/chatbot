@@ -55,16 +55,16 @@ class PineconeIndex:
         except NotFoundException:
             print(f"Index `{self.index_name}` not found.")
 
-    def load_data_into_index(self, path: str | Path, namespace: str | None = None):
+    def load_data_into_index(self, path: str, namespace: str | None = None):
         """
         Loads data to index. Operates only on a 1-column file with a header sentences.
 
         Args:
             path (str): data file to preprocess and load into the index.
         """
-
+        # TODO: zrobić porządek z obsługą Path/str
         if not isinstance(path, str) or not os.path.isfile(path):
-            raise TypeError("Must be a string.")
+            raise TypeError("Path must be a string.")
 
         if namespace is None:
             namespace = config["pinecone"]["namespace"]["raw"]
@@ -166,5 +166,5 @@ class TextProcessing:
 
 
 if __name__ == "__main__":
-    path = Path(__file__).parent.parent.joinpath("sentences_raw.csv")
+    path = str(Path(__file__).parent.parent.joinpath("sentences_raw.csv"))
     PineconeIndex().load_data_into_index(path)
