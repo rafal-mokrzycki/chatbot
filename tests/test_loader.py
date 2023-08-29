@@ -74,7 +74,7 @@ def test_get_split_text(filepath):
 
 def test_tiktoken_len():
     tp = TextProcessing()
-    text = "I am now evaluating a mechanism that using index for an embedding space."
+    text = "I am now evaluating a mechanism that uses index for an embedding space."
     assert tp.tiktoken_len(text) == 14
 
 
