@@ -95,7 +95,7 @@ def split_on_points(text: str) -> list[str]:
     return [replace_whitespaces(sentence) for sentence in sentences]
 
 
-def remove_preambule(text: str) -> str:
+def remove_preambule_before_par(text: str) -> str:
     """
     Removes everything before first paragraph (§) including this paragraph sign with a
     number. Strips whitespace at the beginnin of the remained text. As first paragraph
@@ -108,9 +108,26 @@ def remove_preambule(text: str) -> str:
     Returns:
         str: Remained text body.
     """
-    # usuwanie wstępu (przed punktem 1.)
+    # usuwanie wstępu (przed paragrafem 1.)
     try:
         return re.split(r"[§$] ?1.?", text, 1)[1]
+    except IndexError:
+        return text
+
+
+def remove_preambule_before_point(text: str) -> str:
+    """
+    Removes everything before first point (1.).
+
+    Args:
+        text (str): Text to be divided.
+
+    Returns:
+        str: Remained text body.
+    """
+    # usuwanie wstępu (przed punktem 1.)
+    try:
+        return "1. " + re.split(r" 1.? ", text, 1)[1]
     except IndexError:
         return text
 
@@ -163,6 +180,24 @@ def replace_whitespaces(text: str) -> str:
     return re.sub(r"\s+", " ", text)
 
 
+def remove_page_numbers(text: str) -> str:
+    """
+    Replaces page numbers (i.e. '2 z 5' or '13 z 134').
+
+    Args:
+        text (str): Text to apply removal on.
+
+    Returns:
+        str: Text.
+    """
+    return re.sub(r"\d{1,3} z \d{1,3}", "", text)
+
+
+def add_category(text: str, file_path: str) -> str:
+    category = file_path.split("\\")[-1].split(".")[0]
+    return category + ": " + text + "\n"
+
+
 class DOCXPreprocessor:
     def __init__(self, file_path: str) -> None:
         self.file_path = file_path
@@ -182,11 +217,20 @@ class DOCXPreprocessor:
         """
         if self.file_type.capitalize() == "Zarządzenie":
             t1 = extract_text_from_docx(self.file_path)
-            t2 = remove_preambule(t1)
+            t2 = remove_preambule_before_par(t1)
             t3 = remove_attachments(t2)
             t4 = replace_forbidden_chars(t3)
             return split_on_points(t4)
-        return []
+        elif self.file_type.capitalize() == "Pytania":
+            t1 = extract_text_from_docx(self.file_path)
+            t2 = remove_preambule_before_point(t1)
+            t3 = remove_page_numbers(t2)
+            t4 = replace_whitespaces(t3)
+            t5 = replace_forbidden_chars(t4)
+            t6 = add_category(t5, self.file_path)
+            return [t6]
+        else:
+            return []
 
 
 class PDFPreprocessor:

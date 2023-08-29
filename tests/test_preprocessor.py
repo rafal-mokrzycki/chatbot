@@ -7,13 +7,16 @@ import repackage
 repackage.up()
 from scripts.preprocessor import (
     DOCXPreprocessor,
+    add_category,
     add_lines,
     create_csv_file_if_not_exist,
     extract_text_from_docx,
     forward_regexp_search,
     get_files_in_dir,
     remove_attachments,
-    remove_preambule,
+    remove_page_numbers,
+    remove_preambule_before_par,
+    remove_preambule_before_point,
     replace_forbidden_chars,
     replace_whitespaces,
     split_on_points,
@@ -63,33 +66,33 @@ def test_split_on_points_5():
     assert result[0] == "random string"
 
 
-def test_remove_preambule_1():
+def test_remove_preambule_before_par_1():
     string = "random string § 1 another random string"
-    result = remove_preambule(string)
+    result = remove_preambule_before_par(string)
     assert result == "another random string"
 
 
-def test_remove_preambule_2():
+def test_remove_preambule_before_par_2():
     string = "random string §1 another random string"
-    result = remove_preambule(string)
+    result = remove_preambule_before_par(string)
     assert result == "another random string"
 
 
-def test_remove_preambule_3():
+def test_remove_preambule_before_par_3():
     string = "random string $ 1 another random string"
-    result = remove_preambule(string)
+    result = remove_preambule_before_par(string)
     assert result == "another random string"
 
 
-def test_remove_preambule_4():
+def test_remove_preambule_before_par_4():
     string = "random string $1 another random string"
-    result = remove_preambule(string)
+    result = remove_preambule_before_par(string)
     assert result == "another random string"
 
 
-def test_remove_preambule_5():
+def test_remove_preambule_before_par_5():
     string = "random string @ 1 another random string"
-    result = remove_preambule(string)
+    result = remove_preambule_before_par(string)
     assert result == string
 
 
@@ -170,3 +173,19 @@ def test_preprocess_docx():
     p = DOCXPreprocessor(directory)
     result = p.preprocess()
     assert result == ["This is yet another paragraph. This is a point"]
+
+
+def test_add_category():
+    text = "some random text"
+    file_path = r"E:\\documents\\tests\\Pytania na egzamin.docx"
+    assert add_category(text, file_path) == "Pytania na egzamin: some random text\n"
+
+
+def test_remove_page_numbers():
+    text = "some random 2 z 3 text"
+    assert remove_page_numbers(text) == "some random  text"
+
+
+def test_remove_preambule_before_point():
+    text = "random 1. text"
+    assert remove_preambule_before_point(text) == "1. text"
