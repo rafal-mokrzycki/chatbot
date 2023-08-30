@@ -218,6 +218,27 @@ def determine_language(text: str) -> str:
     return doc._.language
 
 
+def chunk_text(text: str) -> list[str]:
+    """
+    Chunks text into overlapping 3-sentence chunks (they overlap 1 sentence with previous
+    chunk, 1 with next and 1 sentence is non-overlapping.)
+
+    Args:
+        text (str): String to chunk.
+
+    Returns:
+        list[str]: List of strings after chunking.
+    """
+    nlp = spacy.load("pl_core_news_sm")
+    doc = nlp(text)
+    sentences = [sent.text.strip() for sent in doc.sents]
+    result = []
+    for i in range(len(sentences) - 2):
+        pattern = " ".join(str(sentences[j]) for j in range(i, i + 3))
+        result.append(pattern)
+    return result
+
+
 class DOCXPreprocessor:
     def __init__(self, file_path: str) -> None:
         self.file_path = file_path
@@ -250,7 +271,10 @@ class DOCXPreprocessor:
             t6 = add_category(t5, self.file_path)
             return [t6]
         else:
-            return []
+            t1 = extract_text_from_docx(self.file_path)
+            t2 = chunk_text(t1)
+            t3 = replace_whitespaces(t2)
+            return replace_forbidden_chars(t3)
 
 
 class PDFPreprocessor:

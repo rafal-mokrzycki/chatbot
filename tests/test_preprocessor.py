@@ -9,6 +9,7 @@ from scripts.preprocessor import (
     DOCXPreprocessor,
     add_category,
     add_lines,
+    chunk_text,
     create_csv_file_if_not_exist,
     determine_language,
     extract_text_from_docx,
@@ -205,3 +206,14 @@ def test_remove_page_numbers():
 def test_remove_preambule_before_point():
     text = "random 1. text"
     assert remove_preambule_before_point(text) == "1. text"
+
+
+def test_chunk_text():
+    text = "I wish I were a bird. Bailey wishes he had a nicer car. I am afraid I have to go. We are buzzing on this espresso. She fed it everyday."
+    result = chunk_text(text)
+    result_list = [
+        "I wish I were a bird. Bailey wishes he had a nicer car. I am afraid I have to go.",
+        "Bailey wishes he had a nicer car. I am afraid I have to go. We are buzzing on this espresso.",
+        "I am afraid I have to go. We are buzzing on this espresso. She fed it everyday.",
+    ]
+    assert result == result_list

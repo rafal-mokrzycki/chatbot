@@ -11,25 +11,24 @@ from scripts.interface import PineconeIndex, TextProcessing
 from scripts.loader import convert_path_to_string
 
 
-# TODO: more fixtures
 @pytest.fixture(name="pinecone_index_name")
 def pinecone_index_name():
     yield "lazarski-test"
 
 
-@pytest.fixture(name="filepath")
+@pytest.fixture(name="csv_sample_filepath")
 def sample_file_path():
-    yield str(Path(__file__).parent.joinpath("sample.csv"))
+    yield str(Path(__file__).parent.joinpath(r"test_files\sample_file.csv"))
 
 
 @pytest.fixture(name="not_existing_file_path")
 def not_existing_file_path():
-    yield r"tests\test_files\not_existing_file.pdf"
+    yield str(Path(__file__).parent.joinpath(r"test_files\not_existing_file.pdf"))
 
 
 @pytest.fixture(name="existing_file_path")
 def existing_file_path():
-    yield r"tests\test_files\test_file.pdf"
+    yield str(Path(__file__).parent.joinpath(r"test_files\test_file.pdf"))
 
 
 def test_create_index(pinecone_index_name):
@@ -46,28 +45,28 @@ def test_delete_index(pinecone_index_name):
     assert pinecone_index_name not in pinecone.list_indexes()
 
 
-def test_load_data_into_index(filepath, pinecone_index_name):
+def test_load_data_into_index(csv_sample_filepath, pinecone_index_name):
     pi = PineconeIndex(index_name=pinecone_index_name)
     pi.create_index()
-    pi.load_data_into_index(filepath)
+    pi.load_data_into_index(str(csv_sample_filepath))
     description = pi.index.describe_index_stats()
     assert description["total_vector_count"] == 1
     pinecone.delete_index(pinecone_index_name)
 
 
-def test_delete_data(filepath, pinecone_index_name):
+def test_delete_data(csv_sample_filepath, pinecone_index_name):
     pi = PineconeIndex(index_name=pinecone_index_name)
     pi.create_index()
-    pi.load_data_into_index(filepath)
+    pi.load_data_into_index(csv_sample_filepath)
     pi._delete_data(namespace="sentences_raw")
     description = pi.index.describe_index_stats()
     assert description["total_vector_count"] == 0
     pinecone.delete_index(pinecone_index_name)
 
 
-def test_get_split_text(filepath):
+def test_get_split_text(csv_sample_filepath):
     tp = TextProcessing()
-    dataset = load_dataset("csv", split="train", data_files=filepath, sep=";")
+    dataset = load_dataset("csv", split="train", data_files=csv_sample_filepath, sep=";")
     text = tp.get_split_text(dataset)
     assert len(text) == 1
 
