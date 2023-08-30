@@ -3,7 +3,7 @@ from interface import UserInterface
 
 # TODO: add preprocessing for PDF
 # TODO: add possiblity to deal with multiple questions from users
-# TODO: remove questions from data directory
+# TODO: add preprocessing for DOC
 if __name__ == "__main__":
     queries = [
         "Jakie powinny być marginesy w pracy?",

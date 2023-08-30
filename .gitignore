@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # sensitive data
-data/
+*data/
 sentences*.csv
 embedding*.py
 chunk.py
