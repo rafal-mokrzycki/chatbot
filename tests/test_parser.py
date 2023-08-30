@@ -1,4 +1,4 @@
-# to run: .venv/Scripts/python.exe -m pytest -vv  tests/test_preprocessor.py -s
+# to run: .venv/Scripts/python.exe -m pytest -vv  tests/test_parser.py -s
 import os
 from pathlib import Path
 
@@ -6,9 +6,9 @@ import pytest
 import repackage
 
 repackage.up()
-from scripts.preprocessor import (
-    DOCXPreprocessor,
-    PDFPreprocessor,
+from scripts.parser import (
+    DOCXParser,
+    PDFParser,
     add_category,
     add_lines,
     chunk_text,
@@ -18,6 +18,8 @@ from scripts.preprocessor import (
     forward_regexp_search,
     get_files_in_dir,
     remove_attachments,
+    remove_codes,
+    remove_keywords,
     remove_page_numbers,
     remove_preambule_before_par,
     remove_preambule_before_point,
@@ -202,9 +204,25 @@ def test_determine_language_3():
 
 def test_get_raw_text_from_pdf():
     filepath = r"tests/test_files/test_file.pdf"
-    p = PDFPreprocessor()
+    p = PDFParser()
     result = p.get_raw_text_from_pdf(filepath)
     assert result[:25] == "This is a paragraph. This"
+
+
+def test_remove_keywords_1():
+    text = "This is a sample text."
+    to_remove = ["sample", "a"]
+    assert remove_keywords(text, to_remove) == "This is   text."
+
+
+def test_remove_keywords_2():
+    text = "This is a sample text Przedmiotowy."
+    assert remove_keywords(text) == "This is a sample text ."
+
+
+def test_remove_codes():
+    text = "This K_K1 is a EP-22 sample K_12 text."
+    assert remove_codes(text) == "This  is a  sample  text."
 
 
 def test_get_raw_text_from_tables():
@@ -234,14 +252,14 @@ def test_create_csv_file_if_not_exist():
     os.remove("test_table.csv")
 
 
-def test_preprocess_docx():
+def test_parse_docx():
     directory = str(
         Path(__file__).parent.parent.joinpath(
             r"tests/test_files/test_Zarządzenie_file.docx"
         )
     )
-    p = DOCXPreprocessor(directory)
-    result = p.preprocess()
+    p = DOCXParser(directory)
+    result = p.parse()
     assert result == ["This is yet another paragraph. This is a point"]
 
 

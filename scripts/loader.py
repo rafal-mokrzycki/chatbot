@@ -63,7 +63,7 @@ class PineconeIndex:
         with a header `sentences`.
 
         Args:
-            path (str | Path | WindowsPath): data file to preprocess and load into index.
+            path (str | Path | WindowsPath): data file to parse and load into index.
         """
         string_path = convert_path_to_string(path)
 

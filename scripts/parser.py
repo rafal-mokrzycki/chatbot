@@ -17,7 +17,7 @@ config = load_config()
 
 def main(path: str | None = None):
     """
-    Main preprocessor of different files. Adds chunks of texts to a local CSV file.
+    Main parser of different files. Adds chunks of texts to a local CSV file.
 
     Args:
         path (str | None, optional): Local path files are in. Defaults to None.
@@ -27,8 +27,8 @@ def main(path: str | None = None):
         if file_path.endswith(".pdf"):
             pass
         elif file_path.endswith(".docx"):
-            text = DOCXPreprocessor(file_path)
-            list_of_sentences = text.preprocess()
+            text = DOCXParser(file_path)
+            list_of_sentences = text.parse()
             add_lines(list_of_sentences)
         else:
             continue
@@ -272,7 +272,7 @@ def chunk_text(text: str) -> list[str]:
     return result
 
 
-class DOCXPreprocessor:
+class DOCXParser:
     def __init__(self, file_path: str) -> None:
         self.file_path = file_path
         if "Zarządzenie" in self.file_path:
@@ -282,7 +282,7 @@ class DOCXPreprocessor:
         else:
             self.file_type = "Inny"
 
-    def preprocess(self) -> list[str]:
+    def parse(self) -> list[str]:
         """
         Sequentially processes DOCX file.
 
@@ -310,7 +310,7 @@ class DOCXPreprocessor:
             return replace_forbidden_chars(t3)
 
 
-class PDFPreprocessor:
+class PDFParser:
     def get_raw_text_from_pdf(self, file_path: str) -> str:
         """
         Returns raw text (single string) from a PDF file.
@@ -326,45 +326,6 @@ class PDFPreprocessor:
         for i in range(0, len(pdfDocument.pages) - 1):
             full_text.append(self.get_raw_text_from_tables(pdfDocument, i + 1))
         return "".join(full_text).replace("  ", " ")
-        # return full_text
-
-    def remove_keywords(self, text: str, to_remove: list | None = None) -> str:
-        # TODO: poza klasę?
-        """
-        Removes certain keywords from string.
-
-        Args:
-            text (str): String to operate on.
-            to_remove (list | None): Strings to remove. Defaults to None.
-
-        Returns:
-            str: New string.
-        """
-        if to_remove is None:
-            to_remove = [
-                "Wiedza",
-                "Kod efektu",
-                "Metody weryfikacji",
-                "Przedmiotowy",
-                "Kierunkowy",
-            ]
-        for token in to_remove:
-            text = text.replace(token, "")
-        return text
-
-    def remove_codes(self, text: str) -> str:
-        # TODO: poza klasę?
-        """
-        Removes certain codes ('kody efektów kształcenia') from a string based on regexp.
-
-        Args:
-            text (str): String to operate on.
-
-        Returns:
-            str: New string.
-        """
-        pattern = r"(EP-\d{1,2})|(K_[KUW]?\d{1,2})"
-        return re.sub(pattern, text)
 
     def get_raw_text_from_tables(self, pdfDocument: pdf.Document, iterator: int) -> str:
         """
@@ -400,9 +361,24 @@ class PDFPreprocessor:
                     full_text.extend(textFragment.text)
         return "".join(full_text).replace("  ", " ")
 
+    def get_header(self, text: str) -> str:
+        """
+        Gets header of a Syllabus.
+
+        Args:
+            text (str): A text get header from.
+
+        Returns:
+            str: A header
+        """
+        # Adding ? after the quantifier makes it perform the match in non-greedy or \
+        # minimal fashion; as few characters as possible will be matched.
+        pattern = r"sylabus.*? (?=1\.)"
+        return re.search(pattern=pattern, string=text, flags=re.IGNORECASE)[0]
+
     def jsonize_pdf(self, main_string: str) -> dict:
         """
-        Gets saught after elements and return them as a dict, eg.
+        Gets sought after elements and returns them as a dict, eg.
         dict['Metody kształcenia'] = 'Wskazane przez praktykodawcę'
 
         Args:
@@ -422,8 +398,46 @@ class PDFPreprocessor:
             "Metody kształcenia",
         ]
         for elem in list_of_headers:
-            json_[elem] = self.forward_regexp_search(main_string, elem)
+            json_[elem] = forward_regexp_search(main_string, elem)
         return json_
+
+
+def remove_keywords(text: str, to_remove: list | None = None) -> str:
+    """
+    Removes certain keywords from string.
+
+    Args:
+        text (str): String to operate on.
+        to_remove (list | None): Strings to remove. Defaults to None.
+
+    Returns:
+        str: New string.
+    """
+    if to_remove is None:
+        to_remove = [
+            "Wiedza",
+            "Kod efektu",
+            "Metody weryfikacji",
+            "Przedmiotowy",
+            "Kierunkowy",
+        ]
+    for token in to_remove:
+        text = text.replace(token, "")
+    return text
+
+
+def remove_codes(text: str) -> str:
+    """
+    Removes certain codes ('kody efektów kształcenia') from a string based on regexp.
+
+    Args:
+        text (str): String to operate on.
+
+    Returns:
+        str: New string.
+    """
+    pattern = r"(EP-\d{1,2})|(K_[KUW]?\d{1,2})"
+    return re.sub(pattern=pattern, repl="", string=text)
 
 
 def forward_regexp_search(main_string: str, target_string: str) -> str:
@@ -485,18 +499,4 @@ def create_csv_file_if_not_exist(file_path: str):
 
 
 if __name__ == "__main__":
-    # main()
-    p = PDFPreprocessor()
-    t = p.get_raw_text_from_pdf(
-        r"C:\Users\rafal\Documents\python\lazarski-backend\data\Sylabus_praktyka_zawodowa_Z-I-nst.pdf"
-    )
-    to_replace = [
-        "Wiedza",
-        "Kod efektu",
-        "Metody weryfikacji",
-        "Przedmiotowy",
-        "Kierunkowy",
-    ]
-    for r in to_replace:
-        t = t.replace(r, "")
-    print(t)
+    main()
