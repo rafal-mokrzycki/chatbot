@@ -15,4 +15,6 @@ if __name__ == "__main__":
     ]
     interface = UserInterface()
     for query in queries:
+        print(query)
         print(interface.make_conversation(query=query))
+        print(100 * "#")
