@@ -139,7 +139,7 @@ def remove_preambule_before_point(text: str) -> str:
     """
     # usuwanie wstępu (przed punktem 1.)
     try:
-        return "1. " + re.split(r" 1.? ", text, 1)[1]
+        return f"1. {re.split(r' 1.? ', text, 1)[1]}"
     except IndexError:
         return text
 
@@ -160,35 +160,34 @@ def remove_attachments(text: str) -> str:
 
 def replace_forbidden_chars(
     text: str | list[str],
-    forbidden_chars: list[str] | None = None,
-    replace_with: str = ",",
+    replacement_dict: dict | None = None,
 ) -> str | list[str]:
-    # TODO: implement dictionary that maps characters to be replaced to characters \
-    # to replace with
     """
     Replaces characters that prevent from reading CSV file into pandas DataFrame.
 
     Args:
         text (str | list[str]): Text or list of texts to apply replacement on.
-        forbidden_chars (list[str] | None, optional): Forbidden characters to replace
-        with `replace_with`. Defaults to None.
-        replace_with (str): Character to replace with. Defaults to ','.
+        replacement_dict (dict): Dictionary with characters to be replaced (keys) and
+        characters to replace with (values). If None, taken from config.json.
+        Defaults to None.
     Returns:
         (str | list[str]): Text or list of texts.
     """
-    if forbidden_chars is None:
-        forbidden_chars = [";"]
+    if replacement_dict is None:
+        replacement_dict = config["general"]["replacement_dictionary"]
+    elif not isinstance(replacement_dict, dict):
+        raise TypeError("Must be a dictionary.")
     if isinstance(text, str):
-        for char in forbidden_chars:
-            text = text.replace(char, replace_with)
+        for key in replacement_dict:
+            text = text.replace(key, replacement_dict[key])
         return text
     elif isinstance(text, list):
         result = []
         for elem in text:
             if not isinstance(elem, str):
                 raise TypeError("Text must be string or list of strings.")
-            for char in forbidden_chars:
-                elem = elem.replace(char, replace_with)
+            for key in replacement_dict:
+                elem = elem.replace(key, replacement_dict[key])
             result.append(elem)
         return result
     else:
@@ -228,7 +227,7 @@ def remove_page_numbers(text: str) -> str:
 
 def add_category(text: str, file_path: str) -> str:
     category = file_path.split("\\")[-1].split(".")[0]
-    return category + ": " + text + "\n"
+    return f"{category}: {text}\n"
 
 
 def determine_language(text: str) -> str:
@@ -265,9 +264,11 @@ def chunk_text(text: str) -> list[str]:
     doc = nlp(text)
     sentences = [sent.text.strip() for sent in doc.sents]
     result = []
-    for i in range(len(sentences) - 2):
-        pattern = " ".join(str(sentences[j]) for j in range(i, i + 3))
-        result.append(pattern)
+    for i, _ in enumerate(sentences):
+        if i < len(sentences) - 2:
+            pattern = " ".join(str(sentences[j]) for j in range(i, i + 3))
+            result.append(pattern)
+
     return result
 
 

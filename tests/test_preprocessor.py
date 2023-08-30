@@ -28,7 +28,7 @@ from scripts.preprocessor import (
 
 def test_get_files_in_dir():
     directory = str(Path(__file__).parent.parent.joinpath(r"tests/test_files"))
-    assert len(get_files_in_dir(directory)) == 3
+    assert len(get_files_in_dir(directory)) == 4
 
 
 def test_extract_text_from_docx_1():
@@ -128,21 +128,21 @@ def test_replace_forbidden_chars_1():
 
 
 def test_replace_forbidden_chars_2():
-    string = "random string; another random string"
-    result = replace_forbidden_chars(string, replace_with="!")
-    assert result == "random string! another random string"
+    string = "random string $3 another random string"
+    result = replace_forbidden_chars(string)
+    assert result == "random string S3 another random string"
 
 
 def test_replace_forbidden_chars_3():
     string = "random string? another; random string"
-    result = replace_forbidden_chars(string, forbidden_chars=["?", ";"])
-    assert result == "random string, another, random string"
+    result = replace_forbidden_chars(string, replacement_dict={"?": "!", ";": ":"})
+    assert result == "random string! another: random string"
 
 
 def test_replace_forbidden_chars_4():
     string = ["random? string", "another; random", "string"]
-    result = replace_forbidden_chars(string, forbidden_chars=["?", ";"])
-    assert result == ["random, string", "another, random", "string"]
+    result = replace_forbidden_chars(string, replacement_dict={"?": "!", ";": ":"})
+    assert result == ["random! string", "another: random", "string"]
 
 
 def test_replace_forbidden_chars_5():
@@ -153,6 +153,11 @@ def test_replace_forbidden_chars_5():
 def test_replace_forbidden_chars_6():
     with pytest.raises(TypeError, match="Text must be string or list of strings."):
         replace_forbidden_chars([0, 1, 2])
+
+
+def test_replace_forbidden_chars_7():
+    with pytest.raises(TypeError, match="Must be a dictionary."):
+        replace_forbidden_chars(text="Text", replacement_dict=0)
 
 
 def test_replace_whitespaces_1():

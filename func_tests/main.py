@@ -29,8 +29,9 @@ def main():
     with open(queries_file_path, "r") as q:
         with open(answers_file_path, "a") as a:
             for query in q.readlines():
-                answer = interface.make_conversation(query=query)
-                result = query.replace("\n", "") + ";" + answer + "\n"
+                answer = interface.make_conversation(query=query) + "\n"
+                final_query = query.replace("\n", "")
+                result = f"{final_query};{answer}"
                 a.write(result)
 
 
