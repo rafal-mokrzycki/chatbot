@@ -8,6 +8,7 @@ import repackage
 repackage.up()
 from scripts.preprocessor import (
     DOCXPreprocessor,
+    PDFPreprocessor,
     add_category,
     add_lines,
     chunk_text,
@@ -200,7 +201,10 @@ def test_determine_language_3():
 
 
 def test_get_raw_text_from_pdf():
-    pass
+    filepath = r"tests/test_files/test_file.pdf"
+    p = PDFPreprocessor()
+    result = p.get_raw_text_from_pdf(filepath)
+    assert result[:25] == "This is a paragraph. This"
 
 
 def test_get_raw_text_from_tables():
