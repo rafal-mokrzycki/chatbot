@@ -31,12 +31,28 @@ def test_get_files_in_dir():
     assert len(get_files_in_dir(directory)) == 3
 
 
-def test_extract_text_from_docx():
+def test_extract_text_from_docx_1():
     directory = str(
         Path(__file__).parent.parent.joinpath(r"tests/test_files/test_file.docx")
     )
     result = extract_text_from_docx(directory)
     assert result[:25] == "This is a paragraph. This"
+
+
+def test_extract_text_from_docx_2():
+    directory = str(
+        Path(__file__).parent.parent.joinpath(r"tests/test_files/test_file.doc")
+    )
+    result = extract_text_from_docx(directory)
+    assert result[:25] == "This is a paragraph. This"
+
+
+def test_extract_text_from_docx_3():
+    directory = str(
+        Path(__file__).parent.parent.joinpath(r"tests/test_files/test_file.pdf")
+    )
+    with pytest.raises(TypeError, match="File must be DOCX or DOC."):
+        extract_text_from_docx(directory)
 
 
 def test_split_on_points_1():

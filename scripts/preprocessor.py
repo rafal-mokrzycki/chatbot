@@ -6,6 +6,7 @@ from pathlib import Path
 import aspose.pdf as pdf
 import repackage
 import spacy
+import win32com.client
 from docx import Document
 
 repackage.up()
@@ -71,9 +72,19 @@ def extract_text_from_docx(file_path: str) -> str:
     Returns:s
         str: Extracted text.
     """
-    doc = Document(file_path)
-    text = " ".join([paragraph.text for paragraph in doc.paragraphs])
-    return text
+    if file_path.endswith(".docx"):
+        doc = Document(file_path)
+        text = " ".join([paragraph.text for paragraph in doc.paragraphs])
+        return text
+    elif file_path.endswith(".doc"):
+        word = win32com.client.Dispatch("Word.Application")
+        word.visible = False
+        wb = word.Documents.Open(file_path)
+        doc = word.ActiveDocument
+        text = doc.Range().Text
+        return text.replace("\r", " ").replace("\n", " ")
+    else:
+        raise TypeError("File must be DOCX or DOC.")
 
 
 def split_on_points(text: str) -> list[str]:
