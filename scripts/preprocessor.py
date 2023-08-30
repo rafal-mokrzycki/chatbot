@@ -6,6 +6,7 @@ from pathlib import Path
 import aspose.pdf as pdf
 import repackage
 import spacy
+import win32com.client
 from docx import Document
 
 repackage.up()
@@ -71,9 +72,19 @@ def extract_text_from_docx(file_path: str) -> str:
     Returns:s
         str: Extracted text.
     """
-    doc = Document(file_path)
-    text = " ".join([paragraph.text for paragraph in doc.paragraphs])
-    return text
+    if file_path.endswith(".docx"):
+        doc = Document(file_path)
+        text = " ".join([paragraph.text for paragraph in doc.paragraphs])
+        return text
+    elif file_path.endswith(".doc"):
+        word = win32com.client.Dispatch("Word.Application")
+        word.visible = False
+        wb = word.Documents.Open(file_path)
+        doc = word.ActiveDocument
+        text = doc.Range().Text
+        return text.replace("\r", " ").replace("\n", " ")
+    else:
+        raise TypeError("File must be DOCX or DOC.")
 
 
 def split_on_points(text: str) -> list[str]:
@@ -148,37 +159,58 @@ def remove_attachments(text: str) -> str:
 
 
 def replace_forbidden_chars(
-    text: str, forbidden_chars: list[str] | None = None, replace_with: str = ","
-) -> str:
+    text: str | list[str],
+    forbidden_chars: list[str] | None = None,
+    replace_with: str = ",",
+) -> str | list[str]:
+    # TODO: implement dictionary that maps characters to be replaced to characters \
+    # to replace with
     """
     Replaces characters that prevent from reading CSV file into pandas DataFrame.
 
     Args:
-        text (str): Text to apply replacement on.
+        text (str | list[str]): Text or list of texts to apply replacement on.
         forbidden_chars (list[str] | None, optional): Forbidden characters to replace
         with `replace_with`. Defaults to None.
         replace_with (str): Character to replace with. Defaults to ','.
     Returns:
-        str: Text.
+        (str | list[str]): Text or list of texts.
     """
     if forbidden_chars is None:
         forbidden_chars = [";"]
-    for char in forbidden_chars:
-        text = text.replace(char, replace_with)
-    return text
+    if isinstance(text, str):
+        for char in forbidden_chars:
+            text = text.replace(char, replace_with)
+        return text
+    elif isinstance(text, list):
+        result = []
+        for elem in text:
+            if not isinstance(elem, str):
+                raise TypeError("Text must be string or list of strings.")
+            for char in forbidden_chars:
+                elem = elem.replace(char, replace_with)
+            result.append(elem)
+        return result
+    else:
+        raise TypeError("Text must be string or list of strings.")
 
 
-def replace_whitespaces(text: str) -> str:
+def replace_whitespaces(text: str | list[str]) -> str:
     """
     Replaces multiple whitespaces with single ones.
 
     Args:
-        text (str): Text to apply replacement on.
+        text (str | list[str]): Text of list of texts to apply replacement on.
 
     Returns:
-        str: Text.
+        str | list[str]: Text or list of texts.
     """
-    return re.sub(r"\s+", " ", text)
+    if isinstance(text, str):
+        return re.sub(r"\s+", " ", text)
+    elif isinstance(text, list):
+        return [re.sub(r"\s+", " ", t) for t in text]
+    else:
+        raise TypeError("Text must be string of list of strings.")
 
 
 def remove_page_numbers(text: str) -> str:

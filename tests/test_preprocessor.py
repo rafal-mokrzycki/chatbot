@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 
+import pytest
 import repackage
 
 repackage.up()
@@ -30,12 +31,28 @@ def test_get_files_in_dir():
     assert len(get_files_in_dir(directory)) == 3
 
 
-def test_extract_text_from_docx():
+def test_extract_text_from_docx_1():
     directory = str(
         Path(__file__).parent.parent.joinpath(r"tests/test_files/test_file.docx")
     )
     result = extract_text_from_docx(directory)
     assert result[:25] == "This is a paragraph. This"
+
+
+def test_extract_text_from_docx_2():
+    directory = str(
+        Path(__file__).parent.parent.joinpath(r"tests/test_files/test_file.doc")
+    )
+    result = extract_text_from_docx(directory)
+    assert result[:25] == "This is a paragraph. This"
+
+
+def test_extract_text_from_docx_3():
+    directory = str(
+        Path(__file__).parent.parent.joinpath(r"tests/test_files/test_file.pdf")
+    )
+    with pytest.raises(TypeError, match="File must be DOCX or DOC."):
+        extract_text_from_docx(directory)
 
 
 def test_split_on_points_1():
@@ -122,10 +139,37 @@ def test_replace_forbidden_chars_3():
     assert result == "random string, another, random string"
 
 
-def test_replace_whitespaces():
+def test_replace_forbidden_chars_4():
+    string = ["random? string", "another; random", "string"]
+    result = replace_forbidden_chars(string, forbidden_chars=["?", ";"])
+    assert result == ["random, string", "another, random", "string"]
+
+
+def test_replace_forbidden_chars_5():
+    with pytest.raises(TypeError, match="Text must be string or list of strings."):
+        replace_forbidden_chars(0)
+
+
+def test_replace_forbidden_chars_6():
+    with pytest.raises(TypeError, match="Text must be string or list of strings."):
+        replace_forbidden_chars([0, 1, 2])
+
+
+def test_replace_whitespaces_1():
     string = "random string    another  random   string"
     result = replace_whitespaces(string)
     assert result == "random string another random string"
+
+
+def test_replace_whitespaces_2():
+    string = ["random string    another", "random   string"]
+    result = replace_whitespaces(string)
+    assert result == ["random string another", "random string"]
+
+
+def test_replace_whitespaces_3():
+    with pytest.raises(TypeError, match="Text must be string of list of strings."):
+        replace_whitespaces(0)
 
 
 def test_forward_regexp_search():
