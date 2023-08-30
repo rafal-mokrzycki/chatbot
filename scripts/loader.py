@@ -192,5 +192,6 @@ def convert_path_to_string(path: str | Path | WindowsPath) -> str:
 
 
 if __name__ == "__main__":
-    path = Path(__file__).parent.parent.joinpath("sentences_raw.csv")
+    target_filename = config["pinecone"]["target_filename"]["raw"]
+    path = Path(__file__).parent.parent.joinpath(target_filename)
     PineconeIndex().load_data_into_index(path)

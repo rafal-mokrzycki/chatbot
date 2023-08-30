@@ -220,6 +220,25 @@ def add_category(text: str, file_path: str) -> str:
     return category + ": " + text + "\n"
 
 
+def determine_language(text: str) -> str:
+    """
+    Returns a language, that given text is written in.
+
+    Args:
+        text (str): Text to check.
+
+    Returns:
+        str: Language. Tested for pl, en, de.
+    """
+    import spacy_fastlang
+
+    nlp = spacy.load("pl_core_news_sm")
+    nlp.add_pipe("language_detector")
+    doc = nlp(text)
+
+    return doc._.language
+
+
 def chunk_text(text: str) -> list[str]:
     """
     Chunks text into overlapping 3-sentence chunks (they overlap 1 sentence with previous
