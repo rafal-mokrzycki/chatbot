@@ -326,6 +326,45 @@ class PDFPreprocessor:
         for i in range(0, len(pdfDocument.pages) - 1):
             full_text.append(self.get_raw_text_from_tables(pdfDocument, i + 1))
         return "".join(full_text).replace("  ", " ")
+        # return full_text
+
+    def remove_keywords(self, text: str, to_remove: list | None = None) -> str:
+        # TODO: poza klasę?
+        """
+        Removes certain keywords from string.
+
+        Args:
+            text (str): String to operate on.
+            to_remove (list | None): Strings to remove. Defaults to None.
+
+        Returns:
+            str: New string.
+        """
+        if to_remove is None:
+            to_remove = [
+                "Wiedza",
+                "Kod efektu",
+                "Metody weryfikacji",
+                "Przedmiotowy",
+                "Kierunkowy",
+            ]
+        for token in to_remove:
+            text = text.replace(token, "")
+        return text
+
+    def remove_codes(self, text: str) -> str:
+        # TODO: poza klasę?
+        """
+        Removes certain codes ('kody efektów kształcenia') from a string based on regexp.
+
+        Args:
+            text (str): String to operate on.
+
+        Returns:
+            str: New string.
+        """
+        pattern = r"(EP-\d{1,2})|(K_[KUW]?\d{1,2})"
+        return re.sub(pattern, text)
 
     def get_raw_text_from_tables(self, pdfDocument: pdf.Document, iterator: int) -> str:
         """
@@ -446,4 +485,18 @@ def create_csv_file_if_not_exist(file_path: str):
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    p = PDFPreprocessor()
+    t = p.get_raw_text_from_pdf(
+        r"C:\Users\rafal\Documents\python\lazarski-backend\data\Sylabus_praktyka_zawodowa_Z-I-nst.pdf"
+    )
+    to_replace = [
+        "Wiedza",
+        "Kod efektu",
+        "Metody weryfikacji",
+        "Przedmiotowy",
+        "Kierunkowy",
+    ]
+    for r in to_replace:
+        t = t.replace(r, "")
+    print(t)
