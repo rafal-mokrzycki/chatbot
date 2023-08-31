@@ -8,6 +8,7 @@ import repackage
 import spacy
 import win32com.client
 from docx import Document
+from pdfminer.high_level import extract_text
 
 repackage.up()
 from config.config import load_config
@@ -15,23 +16,97 @@ from config.config import load_config
 config = load_config()
 
 
-def main(path: str | None = None):
+def main(path: str | None = None, verbose: bool = False):
     """
     Main parser of different files. Adds chunks of texts to a local CSV file.
 
     Args:
         path (str | None, optional): Local path files are in. Defaults to None.
+        verbose (bool): Whether to print out info if a file has been parsed.
     """
     list_of_files = get_files_in_dir(path)
     for file_path in list_of_files:
         if file_path.endswith(".pdf"):
-            pass
+            try:
+                text = PDFParser(file_path)
+                list_of_sentences = text.parse()
+                add_lines(list_of_sentences)
+                if verbose:
+                    print(f"File `{file_path}` parsed")
+            except RuntimeError:
+                # TODO: problem with ASPOSE client -> check another solution?
+                print(f"File `{file_path}` NOT parsed")
         elif file_path.endswith(".docx"):
             text = DOCXParser(file_path)
             list_of_sentences = text.parse()
             add_lines(list_of_sentences)
+            if verbose:
+                print(f"File `{file_path}` parsed")
         else:
             continue
+
+
+class DOCXParser:
+    def __init__(self, file_path: str) -> None:
+        self.file_path = file_path
+        if "Zarządzenie" in self.file_path:
+            self.file_type = "Zarządzenie"
+        elif "Pytania" in self.file_path:
+            self.file_type = "Pytania"
+        else:
+            self.file_type = "Inny"
+
+    def parse(self) -> list[str]:
+        """
+        Sequentially processes DOCX file.
+
+        Returns:
+            list[str]: List of sentences
+        """
+        if self.file_type.capitalize() == "Zarządzenie":
+            t1 = extract_text_from_docx(self.file_path)
+            t2 = remove_preambule_before_par(t1)
+            t3 = remove_attachments(t2)
+            t4 = replace_forbidden_chars(t3)
+            return split_on_points(t4)
+        elif self.file_type.capitalize() == "Pytania":
+            t1 = extract_text_from_docx(self.file_path)
+            t2 = remove_preambule_before_point(t1)
+            t3 = remove_page_numbers(t2)
+            t4 = replace_whitespaces(t3)
+            t5 = replace_forbidden_chars(t4)
+            t6 = add_category(t5, self.file_path)
+            return [t6]
+        else:
+            t1 = extract_text_from_docx(self.file_path)
+            t2 = chunk_text(t1)
+            t3 = replace_whitespaces(t2)
+            return replace_forbidden_chars(t3)
+
+
+class PDFParser:
+    def __init__(self, file_path: str) -> None:
+        self.file_path = file_path
+        if "Sylabus" in self.file_path:
+            self.file_type = "Sylabus"
+        else:
+            self.file_type = "Inny"
+
+    def parse(self):
+        if self.file_type.capitalize() == "Sylabus":
+            # TODO: get rest of text after tables
+            t1 = extract_text_from_pdf(self.file_path)
+            header = get_header(text=t1, file_path=self.file_path)
+            json_ = jsonize_pdf(t1)
+            text_list = prettify_json(json=json_, header=header)
+            t2 = replace_forbidden_chars(text_list)
+            return replace_whitespaces(t2)
+        else:
+            # TODO: modify if new PDF files arrive
+            t1 = extract_text_from_textual_pdf(self.file_path)
+            t2 = replace_forbidden_chars(t1)
+            t3 = replace_whitespaces(t2)
+            return [t3]
 
 
 def get_files_in_dir(path_to_search: str | None = None) -> list:
@@ -194,7 +269,7 @@ def replace_forbidden_chars(
         raise TypeError("Text must be string or list of strings.")
 
 
-def replace_whitespaces(text: str | list[str]) -> str:
+def replace_whitespaces(text: str | list[str]) -> str | list[str]:
     """
     Replaces multiple whitespaces with single ones.
 
@@ -226,6 +301,16 @@ def remove_page_numbers(text: str) -> str:
 
 
 def add_category(text: str, file_path: str) -> str:
+    """
+    Returns a formatted string with category retrieved from file name and text.
+
+    Args:
+        text (str): Text to operate on.
+        file_path (str): File path to modify.
+
+    Returns:
+        str: Formatted text.
+    """
     category = file_path.split("\\")[-1].split(".")[0]
     return f"{category}: {text}\n"
 
@@ -272,134 +357,123 @@ def chunk_text(text: str) -> list[str]:
     return result
 
 
-class DOCXParser:
-    def __init__(self, file_path: str) -> None:
-        self.file_path = file_path
-        if "Zarządzenie" in self.file_path:
-            self.file_type = "Zarządzenie"
-        elif "Pytania" in self.file_path:
-            self.file_type = "Pytania"
+def extract_text_from_pdf(file_path: str) -> str:
+    """
+    Returns raw text (single string) from a PDF file.
+
+    Args:
+        file_path (str): File path to read PDF file from.
+
+    Returns:
+        str: Full text of a PDF file
+    """
+    pdfDocument = pdf.Document(file_path)
+    full_text = []
+    for i in range(0, len(pdfDocument.pages) - 1):
+        full_text.append(get_raw_text_from_tables(pdfDocument, i + 1))
+    return "".join(full_text).replace("  ", " ")
+
+
+def extract_text_from_textual_pdf(file_path: str) -> str:
+    """
+    Returns plain text from a PDF file (without tables)
+
+    Args:
+        file_path (str): Path to file to extract text from.
+
+    Returns:
+        str: One-line text.
+    """
+    raw_text = extract_text(file_path)
+    return raw_text.replace("\n", " ")
+
+
+def get_raw_text_from_tables(pdfDocument: pdf.Document, iterator: int) -> str:
+    """
+    Returns raw text (single string) from a table in a PDF file.
+
+    Args:
+        pdfDocument (pdf.Document): PDF pages.
+        iterator (int): Number of page.
+
+    Returns:
+        str: Full text of a PDF file page.
+    """
+    # Initialize TableAbsorber object
+    tableAbsorber = pdf.text.TableAbsorber()
+
+    # Parse all the tables on first page
+    tableAbsorber.visit(pdfDocument.pages[iterator])
+
+    # Get a reference of the first table
+    absorbedTable = tableAbsorber.table_list[0]
+
+    full_text = []
+
+    # Iterate through all the rows in the table
+    for pdfTableRow in absorbedTable.row_list:
+        # Iterate through all the columns in the row
+        for pdfTableCell in pdfTableRow.cell_list:
+            # Fetch the text fragments
+            textFragmentCollection = pdfTableCell.text_fragments
+            # Iterate through the text fragments
+            for textFragment in textFragmentCollection:
+                # Print the text
+                full_text.extend(textFragment.text)
+    return "".join(full_text).replace("  ", " ")
+
+
+def get_header(text: str, file_path: str) -> str:
+    """
+    Gets header of a Syllabus.
+
+    Args:
+        text (str): A text get header from.
+
+    Returns:
+        str: A header
+    """
+    # Adding ? after the quantifier makes it perform the match in non-greedy or \
+    # minimal fashion; as few characters as possible will be matched.
+    pattern = r".*sylabus.*? (?=1\.)"
+    try:
+        header = re.search(pattern=pattern, string=text, flags=re.IGNORECASE)[0]
+    except TypeError:
+        if "FiR" in file_path:
+            header = "Sylabus praktyk zawodowych na kierunku Finanse i Rachunkowość"
+        elif "Z" in file_path:
+            header = "Sylabus praktyk zawodowych na kierunku Zarządzanie"
+        elif "Ekonomia" in file_path:
+            header = "Sylabus praktyk zawodowych na kierunku Ekonomia"
         else:
-            self.file_type = "Inny"
-
-    def parse(self) -> list[str]:
-        """
-        Sequentially processes DOCX file.
-
-        Returns:
-            list[str]: List of sentences
-        """
-        if self.file_type.capitalize() == "Zarządzenie":
-            t1 = extract_text_from_docx(self.file_path)
-            t2 = remove_preambule_before_par(t1)
-            t3 = remove_attachments(t2)
-            t4 = replace_forbidden_chars(t3)
-            return split_on_points(t4)
-        elif self.file_type.capitalize() == "Pytania":
-            t1 = extract_text_from_docx(self.file_path)
-            t2 = remove_preambule_before_point(t1)
-            t3 = remove_page_numbers(t2)
-            t4 = replace_whitespaces(t3)
-            t5 = replace_forbidden_chars(t4)
-            t6 = add_category(t5, self.file_path)
-            return [t6]
-        else:
-            t1 = extract_text_from_docx(self.file_path)
-            t2 = chunk_text(t1)
-            t3 = replace_whitespaces(t2)
-            return replace_forbidden_chars(t3)
+            header = "Sylabus"
+    return header
 
 
-class PDFParser:
-    def get_raw_text_from_pdf(self, file_path: str) -> str:
-        """
-        Returns raw text (single string) from a PDF file.
+def jsonize_pdf(text: str) -> dict:
+    """
+    Gets sought after elements and returns them as a dict, eg.
+    dict['Metody kształcenia'] = 'Wskazane przez praktykodawcę'
 
-        Args:
-            file_path (str): File path to read PDF file from.
+    Args:
+        main_string (str): String to search in.
 
-        Returns:
-            str: Full text of a PDF file
-        """
-        pdfDocument = pdf.Document(file_path)
-        full_text = []
-        for i in range(0, len(pdfDocument.pages) - 1):
-            full_text.append(self.get_raw_text_from_tables(pdfDocument, i + 1))
-        return "".join(full_text).replace("  ", " ")
-
-    def get_raw_text_from_tables(self, pdfDocument: pdf.Document, iterator: int) -> str:
-        """
-        Returns raw text (single string) from a table in a PDF file.
-
-        Args:
-            pdfDocument (pdf.Document): PDF pages.
-            iterator (int): Number of page.
-
-        Returns:
-            str: Full text of a PDF file page.
-        """
-        # Initialize TableAbsorber object
-        tableAbsorber = pdf.text.TableAbsorber()
-
-        # Parse all the tables on first page
-        tableAbsorber.visit(pdfDocument.pages[iterator])
-
-        # Get a reference of the first table
-        absorbedTable = tableAbsorber.table_list[0]
-
-        full_text = []
-
-        # Iterate through all the rows in the table
-        for pdfTableRow in absorbedTable.row_list:
-            # Iterate through all the columns in the row
-            for pdfTableCell in pdfTableRow.cell_list:
-                # Fetch the text fragments
-                textFragmentCollection = pdfTableCell.text_fragments
-                # Iterate through the text fragments
-                for textFragment in textFragmentCollection:
-                    # Print the text
-                    full_text.extend(textFragment.text)
-        return "".join(full_text).replace("  ", " ")
-
-    def get_header(self, text: str) -> str:
-        """
-        Gets header of a Syllabus.
-
-        Args:
-            text (str): A text get header from.
-
-        Returns:
-            str: A header
-        """
-        # Adding ? after the quantifier makes it perform the match in non-greedy or \
-        # minimal fashion; as few characters as possible will be matched.
-        pattern = r"sylabus.*? (?=1\.)"
-        return re.search(pattern=pattern, string=text, flags=re.IGNORECASE)[0]
-
-    def jsonize_pdf(self, main_string: str) -> dict:
-        """
-        Gets sought after elements and returns them as a dict, eg.
-        dict['Metody kształcenia'] = 'Wskazane przez praktykodawcę'
-
-        Args:
-            main_string (str): String to search in.
-
-        Returns:
-            dict: Dictionary with `headers` as keys and information as values.
-        """
-        json_ = {}
-        list_of_headers = [
-            "Nazwa przedmiotu",
-            "Forma zajęć",
-            "Rok akademicki, rok studiów, semestr realizacji przedmiotu",
-            "Stopień studiów, tryb studiów",
-            "Cel przedmiotu",
-            "Wymagania wstępne",
-            "Metody kształcenia",
-        ]
-        for elem in list_of_headers:
-            json_[elem] = forward_regexp_search(main_string, elem)
-        return json_
+    Returns:
+        dict: Dictionary with `headers` as keys and information as values.
+    """
+    json_ = {}
+    list_of_headers = [
+        "Nazwa przedmiotu",
+        "Forma zajęć",
+        "Rok akademicki, rok studiów, semestr realizacji przedmiotu",
+        "Stopień studiów, tryb studiów",
+        "Cel przedmiotu",
+        "Wymagania wstępne",
+        "Metody kształcenia",
+    ]
+    for elem in list_of_headers:
+        json_[elem] = forward_regexp_search(text, elem)
+    return json_
 
 
 def remove_keywords(text: str, to_remove: list | None = None) -> str:
@@ -475,6 +549,34 @@ def forward_regexp_search(main_string: str, target_string: str) -> str:
     return " ".join(result)
 
 
+def prettify_json(json: dict, header: str) -> list[str]:
+    """
+    Prettifies a dictionary. Changes {"Nazwa przedmiotu" : "praktyka"} to
+    ["Nazwa przedmiotu na kierunku 'kierunek': praktyka"]
+
+    Args:
+        json (dict): Python dictionary to change.
+        header (str): Header to extract faculty from.
+
+    Returns:
+        list[str]: Formatted string.
+    """
+    new_json = dict()
+    if "Zarządzanie" in header:
+        faculty_name = "Zarządzanie"
+    elif "Finanse i Rachunkowość" in header:
+        faculty_name = "Finanse i Rachunkowość"
+    else:
+        faculty_name = "Ekonomia"
+    for key in json:
+        new_key = f"{key} przedmiotu praktyka zawodowa na kierunku {faculty_name}: "
+        new_json[new_key] = json[key]
+    result = []
+    for key in new_json:
+        result.append(f"{key}{new_json[key]}")
+    return result
+
+
 def add_lines(sentences: list[str], file_path: str | None = None):
     """
     Appends sentences to file. Creates a file if it does no exist.
@@ -493,10 +595,16 @@ def add_lines(sentences: list[str], file_path: str | None = None):
 
 
 def create_csv_file_if_not_exist(file_path: str):
+    """
+    Creates a CSV file of a given name if file does not exist.
+
+    Args:
+        file_path (str): Full path to create CSV file in.
+    """
     if not os.path.exists(file_path):
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(f'{config["pinecone"]["target_column"]}\n')
 
 
 if __name__ == "__main__":
-    main()
+    main(verbose=False)
