@@ -231,16 +231,6 @@ def test_remove_codes():
     assert remove_codes(text) == "This  is a  sample  text."
 
 
-def test_get_raw_text_from_tables():
-    # TODO: implement
-    ...
-
-
-def test_jsonize_pdf():
-    # TODO: implement
-    ...
-
-
 def test_add_lines():
     file_path = "test_table.csv"
     lst = ["random", "string"]
@@ -298,6 +288,41 @@ def test_chunk_text():
     assert result == result_list
 
 
+def test_get_header_1():
+    text = "Sylabus Wydziału Ekonomii i Zarządzania Uczelni Łazarskiego Finanse i rachunkowość, profil praktyczny 1."
+    file_path = r"test-path/Sylabus_praktyka_zawodowa_FiR-I-nst.pdf"
+    assert (
+        get_header(text, file_path)
+        == "Sylabus Wydziału Ekonomii i Zarządzania Uczelni Łazarskiego Finanse i rachunkowość, profil praktyczny "
+    )
+
+
+def test_get_header_2():
+    text = "some random text"
+    file_path = r"test-path/Sylabus_praktyka_zawodowa_FiR-I-nst.pdf"
+    assert (
+        get_header(text, file_path)
+        == "Sylabus praktyk zawodowych na kierunku Finanse i Rachunkowość"
+    )
+
+
+def test_get_header_3():
+    text = "Sylabus Wydziału Ekonomii i Zarządzania Uczelni Łazarskiego Finanse i rachunkowość, profil praktyczny"
+    file_path = r"test-path/Sylabus_praktyka_zawodowa_Z-I-nst.pdf"
+    assert (
+        get_header(text, file_path)
+        == "Sylabus praktyk zawodowych na kierunku Zarządzanie"
+    )
+
+
+def test_get_header_4():
+    text = "Sylabus Wydziału Ekonomii i Zarządzania Uczelni Łazarskiego Finanse i rachunkowość, profil praktyczny"
+    file_path = r"test-path/Sylabus_praktyka_zawodowa_Ekonomia-I-nst.pdf"
+    assert (
+        get_header(text, file_path) == "Sylabus praktyk zawodowych na kierunku Ekonomia"
+    )
+
+
 def test_prettify_json():
     # TODO: implement
     ...
@@ -308,6 +333,11 @@ def test_extract_text_from_textual_pdf():
     ...
 
 
-def test_get_header():
+def test_get_raw_text_from_tables():
+    # TODO: implement
+    ...
+
+
+def test_jsonize_pdf():
     # TODO: implement
     ...
