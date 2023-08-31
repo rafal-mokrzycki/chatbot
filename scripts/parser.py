@@ -431,7 +431,7 @@ def get_header(text: str, file_path: str) -> str:
         text (str): A text get header from.
 
     Returns:
-        str: A header
+        str: A header.
     """
     # Adding ? after the quantifier makes it perform the match in non-greedy or \
     # minimal fashion; as few characters as possible will be matched.
