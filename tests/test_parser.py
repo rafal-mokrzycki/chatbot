@@ -15,8 +15,14 @@ from scripts.parser import (
     create_csv_file_if_not_exist,
     determine_language,
     extract_text_from_docx,
+    extract_text_from_pdf,
+    extract_text_from_textual_pdf,
     forward_regexp_search,
     get_files_in_dir,
+    get_header,
+    get_raw_text_from_tables,
+    jsonize_pdf,
+    prettify_json,
     remove_attachments,
     remove_codes,
     remove_keywords,
@@ -202,10 +208,10 @@ def test_determine_language_3():
     assert determine_language(text) == "de"
 
 
-def test_get_raw_text_from_pdf():
+def test_extract_text_from_pdf():
     filepath = r"tests/test_files/test_file.pdf"
     p = PDFParser()
-    result = p.get_raw_text_from_pdf(filepath)
+    result = extract_text_from_pdf(filepath)
     assert result[:25] == "This is a paragraph. This"
 
 
@@ -226,11 +232,13 @@ def test_remove_codes():
 
 
 def test_get_raw_text_from_tables():
-    pass
+    # TODO: implement
+    ...
 
 
 def test_jsonize_pdf():
-    pass
+    # TODO: implement
+    ...
 
 
 def test_add_lines():
@@ -288,3 +296,18 @@ def test_chunk_text():
         "I am afraid I have to go. We are buzzing on this espresso. She fed it everyday.",
     ]
     assert result == result_list
+
+
+def test_prettify_json():
+    # TODO: implement
+    ...
+
+
+def test_extract_text_from_textual_pdf():
+    # TODO: implement
+    ...
+
+
+def test_get_header():
+    # TODO: implement
+    ...
