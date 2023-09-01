@@ -14,6 +14,8 @@ repackage.up()
 from config.config import load_config
 
 config = load_config()
+# TODO: implement strip() and replacing multiple whitespaces into one-spaces at all stages\
+# of parsing list[str] and str.
 
 
 def main(path: str | None = None, verbose: bool = False):
@@ -369,7 +371,8 @@ def extract_text_from_pdf(file_path: str) -> str:
     """
     pdfDocument = pdf.Document(file_path)
     full_text = []
-    for i in range(0, len(pdfDocument.pages) - 1):
+    # TODO: add check for pages number and whether all pages are used in parsing
+    for i in range(0, len(pdfDocument.pages)):
         full_text.append(get_raw_text_from_tables(pdfDocument, i + 1))
     return "".join(full_text).replace("  ", " ")
 
@@ -399,6 +402,8 @@ def get_raw_text_from_tables(pdfDocument: pdf.Document, iterator: int) -> str:
     Returns:
         str: Full text of a PDF file page.
     """
+    # TODO: add exception handling if there is no table in the file.
+    # TODO: add exception handling if there is a problem with pages number.
     # Initialize TableAbsorber object
     tableAbsorber = pdf.text.TableAbsorber()
 
@@ -472,7 +477,11 @@ def jsonize_pdf(text: str) -> dict:
         "Metody kształcenia",
     ]
     for elem in list_of_headers:
-        json_[elem] = forward_regexp_search(text, elem)
+        # result = forward_regexp_search(text, elem)
+        try:
+            json_[elem] = re.search(rf"{elem}(.*?)\d+\.", text).group(1).strip()
+        except AttributeError:
+            pass
     return json_
 
 
