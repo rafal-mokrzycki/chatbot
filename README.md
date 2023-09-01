@@ -82,7 +82,7 @@ I order to talk to the chatbot you run:
 
 ```python run.py --make_conversation```
 
-then the chatbot asks you, what you would like to ask it about. You can just type in your question(s) (one at a time) and waitfor response. To quit, hit 'q'.
+then the chatbot asks you, what you would like to ask it about. You can just type in your question(s) (one at a time) and waitfor response. To quit, hit 'q'. Additionally, you can add flag `--verbose` or `-v` to see the distance between query vector and answer vector.
 
 6. Is there a different way to test the program?
 
@@ -99,3 +99,7 @@ This script generates a `answers.csv` file with two columns: one with queries an
 Of course, there are also unit tests in the `tests` directory. To perform them, run:
 
 ```python -m pytest -vv  tests/test_loader.py -s```
+
+or
+
+```python -m pytest -vv  tests/test_parser.py -s```.

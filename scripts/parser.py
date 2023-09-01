@@ -14,8 +14,6 @@ repackage.up()
 from config.config import load_config
 
 config = load_config()
-# TODO: implement strip() and replacing multiple whitespaces into one-spaces at all stages\
-# of parsing list[str] and str.
 
 
 def main(path: str | None = None, verbose: bool = False):
