@@ -49,7 +49,8 @@ def make_conversation(
         text_field = config["pinecone"]["target_column"]
     vectorstore = Pinecone(
         index=pinecone_index.index,
-        embedding=text_processing.embed.embed_query,
+        # embedding=text_processing.embed.embed_query,
+        embedding=text_processing.embed,
         text_key=text_field,
         namespace=namespace,
     )
@@ -57,10 +58,12 @@ def make_conversation(
     # res is a list of tuples, where 1st elem is a Document object with 2 attrs:
     # page_content (str) and metadata (dict) and 2nd is a score (distance from
     # question to the nearest answer)
-    if res[0][1] > threshold:
+    answer = res[0][0].page_content
+    score = res[0][1]
+    if score > threshold:
         if verbose:
-            return f"score: {res[0][1]}\n{res[0][0].page_content}"
-        return res[0][0].page_content
+            return f"score: {score} {answer}"
+        return answer
     if verbose:
-        return f"score: {res[0][1]}\nNot in KB."
+        return f"score: {score} Not in KB."
     return "Not in KB."

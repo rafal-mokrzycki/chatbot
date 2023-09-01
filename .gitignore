@@ -130,7 +130,7 @@ dmypy.json
 
 # sensitive data
 *data/
-sentences*.csv
+*.csv
 embedding*.py
 chunk.py
 config.json

@@ -20,4 +20,4 @@ def main(verbose: bool = False):
 
 
 if __name__ == "__main__":
-    main()
+    main(verbose=True)
