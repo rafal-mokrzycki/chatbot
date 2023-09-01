@@ -181,7 +181,7 @@ def split_on_points(text: str) -> list[str]:
     # oraz usuwanie pustych elementów listy
     sentences = [sentence.strip() for sentence in text_without_points if sentence.strip()]
     # usuwanie wielokrotnych spacji wewnątrz stringów i zwrócenie listy
-    return [replace_whitespaces(sentence) for sentence in sentences]
+    return [replace_whitespaces(sentence.strip()) for sentence in sentences]
 
 
 def remove_preambule_before_par(text: str) -> str:
@@ -201,7 +201,7 @@ def remove_preambule_before_par(text: str) -> str:
     try:
         return re.split(r"[§$] ?1.?", text, 1)[1]
     except IndexError:
-        return text
+        return replace_whitespaces(text.strip())
 
 
 def remove_preambule_before_point(text: str) -> str:
@@ -218,7 +218,7 @@ def remove_preambule_before_point(text: str) -> str:
     try:
         return f"1. {re.split(r' 1.? ', text, 1)[1]}"
     except IndexError:
-        return text
+        return replace_whitespaces(text.strip())
 
 
 def remove_attachments(text: str) -> str:
@@ -232,7 +232,7 @@ def remove_attachments(text: str) -> str:
         str: Remained text body.
     """
     # usuwanie załączników wraz z tytułem sekcji (np. "Załącznik nr X")
-    return re.split(r"Za[lł][aą]cznik ?(nr)? ?1", text, 1)[0]
+    return replace_whitespaces(re.split(r"Za[lł][aą]cznik ?(nr)? ?1", text, 1)[0]).strip()
 
 
 def replace_forbidden_chars(
@@ -257,7 +257,7 @@ def replace_forbidden_chars(
     if isinstance(text, str):
         for key in replacement_dict:
             text = text.replace(key, replacement_dict[key])
-        return text
+        return replace_whitespaces(text.strip())
     elif isinstance(text, list):
         result = []
         for elem in text:
@@ -265,7 +265,7 @@ def replace_forbidden_chars(
                 raise TypeError("Text must be string or list of strings.")
             for key in replacement_dict:
                 elem = elem.replace(key, replacement_dict[key])
-            result.append(elem)
+            result.append(replace_whitespaces(elem.strip()))
         return result
     else:
         raise TypeError("Text must be string or list of strings.")
@@ -314,7 +314,8 @@ def add_category(text: str, file_path: str) -> str:
         str: Formatted text.
     """
     category = file_path.split("\\")[-1].split(".")[0]
-    return f"{category}: {text}\n"
+    result = f"{category}: {text}\n"
+    return replace_whitespaces(result.strip())
 
 
 def determine_language(text: str) -> str:
@@ -354,7 +355,7 @@ def chunk_text(text: str) -> list[str]:
     for i, _ in enumerate(sentences):
         if i < len(sentences) - 2:
             pattern = " ".join(str(sentences[j]) for j in range(i, i + 3))
-            result.append(pattern)
+            result.append(replace_whitespaces(pattern.strip()))
 
     return result
 
@@ -374,7 +375,8 @@ def extract_text_from_pdf(file_path: str) -> str:
     # TODO: add check for pages number and whether all pages are used in parsing
     for i in range(0, len(pdfDocument.pages)):
         full_text.append(get_raw_text_from_tables(pdfDocument, i + 1))
-    return "".join(full_text).replace("  ", " ")
+    result = "".join(full_text)
+    return replace_whitespaces(result.strip())
 
 
 def extract_text_from_textual_pdf(file_path: str) -> str:
@@ -388,7 +390,8 @@ def extract_text_from_textual_pdf(file_path: str) -> str:
         str: One-line text.
     """
     raw_text = extract_text(file_path)
-    return raw_text.replace("\n", " ")
+    result = raw_text.replace("\n", " ")
+    return replace_whitespaces(result.strip())
 
 
 def get_raw_text_from_tables(pdfDocument: pdf.Document, iterator: int) -> str:
@@ -425,7 +428,8 @@ def get_raw_text_from_tables(pdfDocument: pdf.Document, iterator: int) -> str:
             for textFragment in textFragmentCollection:
                 # Print the text
                 full_text.extend(textFragment.text)
-    return "".join(full_text).replace("  ", " ")
+    result = "".join(full_text)
+    return replace_whitespaces(result.strip())
 
 
 def get_header(text: str, file_path: str) -> str:
@@ -452,7 +456,7 @@ def get_header(text: str, file_path: str) -> str:
             header = "Sylabus praktyk zawodowych na kierunku Ekonomia"
         else:
             header = "Sylabus"
-    return header
+    return replace_whitespaces(header.strip())
 
 
 def jsonize_pdf(text: str) -> dict:
@@ -479,7 +483,8 @@ def jsonize_pdf(text: str) -> dict:
     for elem in list_of_headers:
         # result = forward_regexp_search(text, elem)
         try:
-            json_[elem] = re.search(rf"{elem}(.*?)\d+\.", text).group(1).strip()
+            result = re.search(rf"{elem}(.*?)\d+\.", text).group(1)
+            json_[elem] = replace_whitespaces(result.strip())
         except AttributeError:
             pass
     return json_
@@ -506,7 +511,7 @@ def remove_keywords(text: str, to_remove: list | None = None) -> str:
         ]
     for token in to_remove:
         text = text.replace(token, "")
-    return text
+    return replace_whitespaces(text.strip())
 
 
 def remove_codes(text: str) -> str:
@@ -520,7 +525,8 @@ def remove_codes(text: str) -> str:
         str: New string.
     """
     pattern = r"(EP-\d{1,2})|(K_[KUW]?\d{1,2})"
-    return re.sub(pattern=pattern, repl="", string=text)
+    result = re.sub(pattern=pattern, repl="", string=text)
+    return replace_whitespaces(result.strip())
 
 
 def forward_regexp_search(main_string: str, target_string: str) -> str:
@@ -549,13 +555,14 @@ def forward_regexp_search(main_string: str, target_string: str) -> str:
     # position of the target_string
     pos = main_string.find(target_string)
     word_list = (main_string[pos + length :].strip()).split(" ")
-    result = []
+    result_lst = []
     for word in word_list:
         if get_number_with_comma(word):
-            result.append(word)
+            result_lst.append(word)
         else:
             break
-    return " ".join(result)
+    result = " ".join(result_lst)
+    return replace_whitespaces(result.strip())
 
 
 def prettify_json(json: dict, header: str) -> list[str]:
