@@ -8,7 +8,7 @@ from pathlib import Path
 from scripts.interface import make_conversation
 
 
-def main():
+def main(verbose=False):
     # file to take queries from
     queries_file_path = Path(__file__).parent.joinpath("queries.txt")
 
@@ -27,11 +27,11 @@ def main():
     with open(queries_file_path, "r") as q:
         with open(answers_file_path, "a") as a:
             for query in q.readlines():
-                answer = make_conversation(query=query) + "\n"
+                answer = make_conversation(query=query, verbose=verbose) + "\n"
                 final_query = query.replace("\n", "")
                 result = f"{final_query};{answer}"
                 a.write(result)
 
 
 if __name__ == "__main__":
-    main()
+    main(verbose=True)
