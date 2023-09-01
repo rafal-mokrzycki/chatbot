@@ -15,9 +15,9 @@ def main():
 
     config = load_config()
     parser = argparse.ArgumentParser(
-        prog="ProgramName",
-        description="What the program does",
-        epilog="Text at the bottom of help",
+        prog="ChatBot",
+        description="",
+        epilog="",
     )
 
     group = parser.add_mutually_exclusive_group()
@@ -64,7 +64,7 @@ def main():
         const="aaa",
         type=str,
     )
-
+    parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
     if args.create_index:
         print(pi.create_index())
@@ -84,7 +84,7 @@ def main():
             query = input("O co chcesz mnie zapytać?\n")
             if query == "q":
                 break
-            print(make_conversation(query=query))
+            print(make_conversation(query=query, verbose=vars(args)["verbose"]))
 
 
 if __name__ == "__main__":

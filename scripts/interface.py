@@ -20,7 +20,7 @@ def make_conversation(
     namespace: str = None,
     threshold: float = None,
     text_field: str = None,
-    # TODO: add verbose to check the threshold.
+    verbose: bool = False,
 ) -> str:
     """
     Takes user query as input and returns an answer based on KB (if available)
@@ -35,6 +35,8 @@ def make_conversation(
         returned (as the answer for the query is not in KB). Defaults to None.
         text_field (str, optional): Field in Pinecone index to search answer for.
         Defaults to None.
+        verbose (bool): Whether to display score (distance betwee query vector and answer
+        vector).
 
     Returns:
         str: Answer for user question.
@@ -56,5 +58,9 @@ def make_conversation(
     # page_content (str) and metadata (dict) and 2nd is a score (distance from
     # question to the nearest answer)
     if res[0][1] > threshold:
+        if verbose:
+            return f"score: {res[0][1]}\n{res[0][0].page_content}"
         return res[0][0].page_content
-    return str("Not in KB.")
+    if verbose:
+        return f"score: {res[0][1]}\nNot in KB."
+    return "Not in KB."

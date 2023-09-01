@@ -1,8 +1,9 @@
 #!/usr/bin/python
 from interface import make_conversation
 
+
 # TODO: add possiblity to deal with multiple questions from users
-if __name__ == "__main__":
+def main(verbose: bool = False):
     queries = [
         "Jakie powinny być marginesy w pracy?",
         "Jak zmienić promotora?",
@@ -13,6 +14,10 @@ if __name__ == "__main__":
     ]
 
     for query in queries:
-        print(query)
-        print(make_conversation(query=query))
         print(100 * "#")
+        print(query)
+        print(make_conversation(query=query, verbose=verbose))
+
+
+if __name__ == "__main__":
+    main()
