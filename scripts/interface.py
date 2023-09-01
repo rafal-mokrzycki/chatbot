@@ -16,6 +16,7 @@ text_processing = TextProcessing()
 
 
 class UserInterface:
+    # TODO: do we need his init?
     def __init__(self) -> None:
         super().__init__()
 
@@ -25,6 +26,7 @@ class UserInterface:
         namespace: str = None,
         threshold: float = None,
         text_field: str = None,
+        # TODO: add verbose to check the threshold.
     ) -> str:
         """
         Takes user query as input and returns an answer based on KB (if available)

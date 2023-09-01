@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 
+import aspose.pdf as pdf
 import pytest
 import repackage
 
@@ -37,7 +38,7 @@ from scripts.parser import (
 
 def test_get_files_in_dir():
     directory = str(Path(__file__).parent.parent.joinpath(r"tests/test_files"))
-    assert len(get_files_in_dir(directory)) == 4
+    assert len(get_files_in_dir(directory)) == 6
 
 
 def test_extract_text_from_docx_1():
@@ -209,10 +210,10 @@ def test_determine_language_3():
 
 
 def test_extract_text_from_pdf():
-    filepath = r"tests/test_files/test_file.pdf"
-    p = PDFParser()
+    filepath = r"tests/test_files/test_table_file.pdf"
+    # p = PDFParser(filepath)
     result = extract_text_from_pdf(filepath)
-    assert result[:25] == "This is a paragraph. This"
+    assert result == "Text1 Text2 Obj2 Obj33 Obj1 Obj22 "
 
 
 def test_remove_keywords_1():
@@ -324,20 +325,47 @@ def test_get_header_4():
 
 
 def test_prettify_json():
-    # TODO: implement
-    ...
+    json = {"Nazwa przedmiotu": "praktyka"}
+    header = "random text Zarządzanie random text"
+    assert prettify_json(json, header) == [
+        "Nazwa przedmiotu przedmiotu praktyka zawodowa na kierunku Zarządzanie: praktyka"
+    ]
 
 
 def test_extract_text_from_textual_pdf():
-    # TODO: implement
-    ...
+    file_path = r"tests/test_files/test_file.pdf"
+    assert (
+        extract_text_from_textual_pdf(file_path)
+        == "This is a paragraph.   This is another paragraph.   § 1.   This is yet another paragraph.   Załącznik nr 1   This is an attachment.     \x0c"
+    )
+
+
+def test_jsonize_pdf_1():
+    text = (
+        "1. Nazwa przedmiotu praktyka 2. Forma zajęć praktyka 3. Rok akademicki, rok studiów, semestr realizacji przedmiotu rok III semestr II 4. Stopień studiów, tryb studiów brak 5. Cel przedmiotu brak 6. Wymagania wstępne brak 7. Metody kształcenia praktyka 8.",
+    )
+
+    assert jsonize_pdf(text[0]) == {
+        "Nazwa przedmiotu": "praktyka",
+        "Forma zajęć": "praktyka",
+        "Rok akademicki, rok studiów, semestr realizacji przedmiotu": "rok III semestr II",
+        "Stopień studiów, tryb studiów": "brak",
+        "Cel przedmiotu": "brak",
+        "Wymagania wstępne": "brak",
+        "Metody kształcenia": "praktyka",
+    }
+
+
+def test_jsonize_pdf_2():
+    text = "1. Nazwa przedmiotu praktyka 2."
+    assert jsonize_pdf(text) == {"Nazwa przedmiotu": "praktyka"}
 
 
 def test_get_raw_text_from_tables():
-    # TODO: implement
-    ...
-
-
-def test_jsonize_pdf():
-    # TODO: implement
-    ...
+    file_path = r"tests/test_files/test_table_file.pdf"
+    iterator = 1
+    pdf_doc = pdf.Document(file_path)
+    assert (
+        get_raw_text_from_tables(pdf_doc, iterator)
+        == "Text1 Text2 Obj2 Obj33 Obj1 Obj22 "
+    )
