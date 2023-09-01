@@ -2,16 +2,16 @@
 import argparse
 
 import repackage
-from interface import UserInterface
 from loader import PineconeIndex
 
 repackage.up()
+from interface import make_conversation
+
 from config.config import load_config
 
 
 def main():
     pi = PineconeIndex()
-    interface = UserInterface()
 
     config = load_config()
     parser = argparse.ArgumentParser(
@@ -84,7 +84,7 @@ def main():
             query = input("O co chcesz mnie zapytać?\n")
             if query == "q":
                 break
-            print(interface.make_conversation(query=query))
+            print(make_conversation(query=query))
 
 
 if __name__ == "__main__":

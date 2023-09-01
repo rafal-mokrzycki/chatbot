@@ -5,12 +5,10 @@ import repackage
 repackage.up()
 from pathlib import Path
 
-from scripts.interface import UserInterface
+from scripts.interface import make_conversation
 
 
 def main():
-    interface = UserInterface()
-
     # file to take queries from
     queries_file_path = Path(__file__).parent.joinpath("queries.txt")
 
@@ -29,7 +27,7 @@ def main():
     with open(queries_file_path, "r") as q:
         with open(answers_file_path, "a") as a:
             for query in q.readlines():
-                answer = interface.make_conversation(query=query) + "\n"
+                answer = make_conversation(query=query) + "\n"
                 final_query = query.replace("\n", "")
                 result = f"{final_query};{answer}"
                 a.write(result)

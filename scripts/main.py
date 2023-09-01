@@ -1,7 +1,6 @@
 #!/usr/bin/python
-from interface import UserInterface
+from interface import make_conversation
 
-# TODO: add parsing for PDF
 # TODO: add possiblity to deal with multiple questions from users
 if __name__ == "__main__":
     queries = [
@@ -12,8 +11,8 @@ if __name__ == "__main__":
         "Kiedy wybuchła I wojna światowa?",
         "Ile mieszkańców ma Warszawa?",
     ]
-    interface = UserInterface()
+
     for query in queries:
         print(query)
-        print(interface.make_conversation(query=query))
+        print(make_conversation(query=query))
         print(100 * "#")
