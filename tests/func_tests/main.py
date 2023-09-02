@@ -1,9 +1,9 @@
 import os
+from pathlib import Path
 
 import repackage
 
-repackage.up()
-from pathlib import Path
+repackage.up(2)
 
 from scripts.interface import make_conversation
 
@@ -20,12 +20,12 @@ def main(verbose=False):
 
     # if target file does not exist, create it
     if not os.path.isfile(answers_file_path):
-        with open(answers_file_path, "w") as f:
+        with open(answers_file_path, "w", encoding="utf-8") as f:
             f.write(header)
 
     # read queries, perform conversation and write queries and answers into trget file
-    with open(queries_file_path, "r") as q:
-        with open(answers_file_path, "a") as a:
+    with open(queries_file_path, "r", encoding="utf-8") as q:
+        with open(answers_file_path, "a", encoding="utf-8") as a:
             for query in q.readlines():
                 answer = make_conversation(query=query, verbose=verbose) + "\n"
                 final_query = query.replace("\n", "")

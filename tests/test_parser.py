@@ -214,7 +214,7 @@ def test_add_lines():
     file_path = "test_table.csv"
     lst = ["random", "string"]
     parser.add_lines(lst, file_path)
-    with open("test_table.csv", "r") as f:
+    with open("test_table.csv", "r", encoding="utf-8") as f:
         lines = f.readlines()
     assert lines == ["sentences\n", "random\n", "string"]
     os.remove("test_table.csv")
@@ -223,7 +223,7 @@ def test_add_lines():
 def test_create_csv_file_if_not_exist():
     file_path = "test_table.csv"
     parser.create_csv_file_if_not_exist(file_path)
-    with open("test_table.csv", "r") as f:
+    with open("test_table.csv", "r", encoding="utf-8") as f:
         lines = f.readlines()
     assert lines == ["sentences\n"]
     os.remove("test_table.csv")

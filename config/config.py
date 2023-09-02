@@ -15,5 +15,5 @@ def load_config(file_name="config.json") -> dict:
         dict: Dictionary with configuration.
     """
     file_path = Path(__file__).parent.joinpath(file_name)
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
